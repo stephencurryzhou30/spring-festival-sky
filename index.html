@@ -16,5 +16,5 @@
 <section id="wall"><div class="wallHead"><h2><span>✳</span> 祝福墙</h2><button class="quiet" id="refresh">↻ &nbsp; 刷新留言</button></div>
 <p id="status" role="status">正在收取祝福…</p><div id="cards"></div><button id="more" hidden>查看更多</button></section>
 </main>
-<dialog id="composer"><form method="dialog"><button class="close" aria-label="关闭">×</button></form><p class="kicker">✦ &nbsp; 新春来信</p><h2>写下你的祝福</h2><label for="wish">想送上夜空的话</label><textarea id="wish" maxlength="80" rows="3" placeholder="愿我们常相见，共看好风景。"></textarea><div class="count"> <span id="length">0</span> / 80</div><p>下一步将打开 GitHub。登录并提交后，所有访客都能看到你的账号名和祝福。</p><a class="primary" id="send" target="_blank" rel="noopener noreferrer">前往 GitHub 发表</a></dialog>
+<dialog id="composer"><form method="dialog"><button class="close" aria-label="关闭">×</button></form><p class="kicker">✦ &nbsp; 新春来信</p><h2>写下你的祝福</h2><label for="nickname">昵称（选填）</label><input id="nickname" maxlength="16" placeholder="匿名朋友"><label for="wish">想送上夜空的话</label><textarea id="wish" maxlength="80" rows="3" placeholder="愿我们常相见，共看好风景。"></textarea><div class="count"> <span id="length">0</span> / 80</div><p id="feedback" role="status">祝福将公开展示在弹幕和祝福墙上。</p><button class="primary" id="send" type="button">发送祝福</button></dialog>
 <script type="module" src="./app.js"></script></html>

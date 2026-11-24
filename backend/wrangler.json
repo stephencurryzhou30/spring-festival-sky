@@ -1,0 +1,8 @@
+{
+  "name": "spring-festival-wishes",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-11-01",
+  "workers_dev": true,
+  "d1_databases": [{"binding":"DB","database_name":"spring-festival-wishes","database_id":"e947372e-318a-454e-94e5-70582033375e"}],
+  "ratelimits": [{"name":"POST_LIMIT","namespace_id":"71027","simple":{"limit":6,"period":60}}]
+}
