@@ -88,7 +88,8 @@ $('send').onclick=async()=>{
 }
 updateComposer();setMotion();load()
 setInterval(showBubble,6000)
-setInterval(()=>{if(!paused&&!document.hidden)burst()},5800)
+
 setInterval(()=>{if(!document.hidden)load()},20000)
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()})
+
 

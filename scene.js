@@ -1,28 +1,21 @@
 const canvas = document.querySelector('canvas')
 const ctx = canvas.getContext('2d')
 const base = document.createElement('canvas')
-let w, h, frame, paused = false, sparks = []
+let w, h, ratio, frame = 0, paused = false, time = 0, last = 0
+let shells = [], serial = 0, nextLaunch = 0
+const tau = 2 * Math.PI
+const palettes = [
+  ['#ffe6aa','#ffb95e','#ee7840'], ['#ffe4e1','#ff899b','#c84e83'],
+  ['#fff3c5','#e8bb64','#f79537'], ['#fff0cf','#97dfd5','#499fac']
+]
 function random(seed) {
-  let state = seed
-  return () => ((state = (Math.imul(1664525, state) + 1013904223) >>> 0) / 4294967296)
+  let state=seed
+  return () => ((state=(Math.imul(1664525,state)+1013904223)>>>0)/4294967296)
 }
-function firework(c,x,y,r,color,seed) {
-  const rand = random(seed)
-  c.save()
-  c.translate(x,y)
-  for(let i=0;i<100;i++){
-    const a=i*.06283+rand()*.045, len=r*(.54+rand()*.46)
-    const dx=Math.cos(a)*len, dy=Math.sin(a)*len
-    for(let j=0;j<13;j++){
-      const t=.13+j*.066, end=t+.036*rand()
-      c.globalAlpha=(.25+.7*t)*(.6+rand()*.4)
-      c.strokeStyle=i%5===0?'#fff3c3':color
-      c.lineWidth=.6+rand()*1.1
-      c.beginPath();c.moveTo(dx*t,dy*t+len*.13*t*t)
-      c.lineTo(dx*end,dy*end+len*.13*end*end);c.stroke()
-    }
-  }
-  c.restore()
+function halo(c,x,y,r,color) {
+  const g=c.createRadialGradient(x,y,0,x,y,r)
+  g.addColorStop(0,color);g.addColorStop(1,'transparent')
+  c.fillStyle=g;c.fillRect(x-r,y-r,r*2,r*2)
 }
 function pavilion(c,x,y,s,levels){
   c.save();c.translate(x,y);c.scale(s,s)
@@ -38,47 +31,130 @@ function pavilion(c,x,y,s,levels){
   }
   c.restore()
 }
+
 function resize(){
-  const rect=canvas.getBoundingClientRect();w=rect.width;h=rect.height
-  const scale=Math.min(devicePixelRatio||1,2)
-  canvas.width=base.width=Math.round(w*scale);canvas.height=base.height=Math.round(h*scale)
-  const c=base.getContext('2d');c.scale(scale,scale)
-  const rand=random(2027), mobile=w<650
-  for(let i=0;i<240;i++){c.fillStyle='rgba(255,216,162,'+rand()*.65+')';c.fillRect(rand()*w,rand()*h,1.4,1.4)}
-  firework(c,w*.73,h*(mobile?.18:.33),Math.min(w*.22,170),'#ffce80',23)
-  firework(c,w*.91,h*(mobile?.41:.52),Math.min(w*.14,110),'#ff8f9e',31)
-  firework(c,w*.49,h*.16,Math.min(w*.09,62),'#ec9a91',35)
-  for(let i=0;i<13;i++){
-    const x=(i+rand())*w/13,y=h*(.54+rand()*.3),s=.4+rand()*.6
-    const glow=c.createRadialGradient(x,y,0,x,y,22*s);glow.addColorStop(0,'#ffa35760');glow.addColorStop(1,'#ffa35700')
-    c.fillStyle=glow;c.fillRect(x-23*s,y-23*s,46*s,46*s);c.fillStyle='#e68a56'
-    c.beginPath();c.moveTo(x-4*s,y-6*s);c.lineTo(x+4*s,y-6*s);c.lineTo(x+2.7*s,y+4*s);c.lineTo(x-2.7*s,y+4*s);c.fill()
+  const rect=canvas.getBoundingClientRect()
+  if(w===rect.width && h===rect.height)return
+  w=rect.width;h=rect.height;ratio=Math.min(devicePixelRatio||1,1.6)
+  canvas.width=base.width=Math.round(w*ratio);canvas.height=base.height=Math.round(h*ratio)
+  const c=base.getContext('2d');c.scale(ratio,ratio)
+  const rand=random(2718), horizon=h*.86
+  const sky=c.createLinearGradient(0,0,0,h)
+  sky.addColorStop(0,'#100f22');sky.addColorStop(.53,'#25192e');sky.addColorStop(.86,'#743b48');sky.addColorStop(1,'#1c1526')
+  c.fillStyle=sky;c.fillRect(0,0,w,h)
+  for(let i=0;i<200;i++){
+    c.fillStyle='rgba(255,227,195,'+(rand()*.55)+')'
+    c.fillRect(rand()*w,rand()*h*.8,1,1)
   }
   for(let layer=0;layer<3;layer++){
-    const y=h*(.86+layer*.043)
-    c.fillStyle=['#662b40','#4f2035','#321324'][layer];c.beginPath();c.moveTo(0,h)
-    for(let x=0;x<=w+6;x+=6)c.lineTo(x,y+12*Math.sin(x/90+layer)+6*Math.cos(x/38))
-    c.lineTo(w,h);c.closePath();c.fill()
-    if(layer===1){pavilion(c,w*.78,y+5,mobile?.83:1.32,3);pavilion(c,w*.93,y+7,.76,2);pavilion(c,w*.13,y+9,.63,2)}
+    const y=h*(.74+layer*.05)
+    c.fillStyle=['#553649','#412b40','#2b2032'][layer]
+    c.beginPath();c.moveTo(0,horizon)
+    for(let x=0;x<w+7;x+=6)c.lineTo(x,y+12*Math.sin(x/95+layer*2)+6*Math.cos(x/38+layer))
+    c.lineTo(w,horizon);c.closePath();c.fill()
   }
-  paint(performance.now())
+  for(let i=0;i<42;i++){
+    const x=w*rand(), s=.16+rand()*.22
+    pavilion(c,x,horizon,s,1+Math.floor(rand()*2))
+    halo(c,x,horizon-3,6,'#ffb06540')
+  }
+  pavilion(c,w*.80,horizon,w<650?.79:1.10,3)
+  pavilion(c,w*.91,horizon,.65,2)
+  const water=c.createLinearGradient(0,horizon,0,h)
+  water.addColorStop(0,'#402535');water.addColorStop(1,'#140f1f')
+  c.fillStyle=water;c.fillRect(0,horizon,w,h-horizon)
+  for(let i=0;i<620;i++){
+    const x=rand()*w,y=rand(),len=1+rand()*(1+y*14)
+    c.fillStyle='rgba(237,151,99,'+(rand()*.17*(1-y*.65))+')'
+    c.fillRect(x,horizon+y*(h-horizon),len,.8)
+  }
+  shells=[]
+  addShell(w*.72,h*(w<650?.21:.34),1.75,0)
+  addShell(w*.92,h*.43,2.42,1)
+  nextLaunch=time+1.2;paint()
 }
-function paint(now){
-  ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(base,0,0)
-  ctx.scale(canvas.width/w,canvas.height/h)
-  sparks=sparks.filter(p=>now-p.start<1700)
-  for(const p of sparks){const t=(now-p.start)/1700, travel=(1-Math.exp(-3*t))*p.speed
-    ctx.globalAlpha=Math.max(0,1-t);ctx.fillStyle=p.color
-    ctx.beginPath();ctx.arc(p.x+Math.cos(p.a)*travel,p.y+Math.sin(p.a)*travel+48*t*t,2-t,0,Math.PI*2);ctx.fill()}
+function addShell(x,y,age=0,style=serial%4){
+  const rand=random(++serial*8353), far=style===1?.72:1
+  const radius=Math.min(w*(w<650?.29:.165),h*.3)*far
+  const stars=[], count=w<650?145:232
+  // Uniform points on a sphere keep the center and rim spatially distinct.
+  const rotation=rand()*tau
+  for(let i=0;i<count;i++){
+    const z=1-2*(i+.5)/count, a=i*2.399963+rotation, ring=Math.sqrt(1-z*z)
+    const inner=i%6===0, speed=(inner?.49:1)*(.84+.22*rand())
+    stars.push({x:Math.cos(a)*ring*speed,y:Math.sin(a)*ring*speed,z:z*speed,
+      life:1.4+rand()*1.1+(style===2?.9:0),phase:rand()*tau,
+      color:inner?'#fff4ca':palettes[style][Math.floor(rand()*3)]})
+  }
+  shells.push({x,y,stars,radius,style,born:time-age,flight:.85,launchX:x-radius*.26,
+    launchY:h*.85,glow:palettes[style][1]})
+  if(shells.length>7)shells.shift()
+}
+function drawShell(shell){
+  const {x,y,radius,flight,style}=shell, age=time-shell.born
+  if(age<flight){
+    const travel=t=>1-(1-t)**1.8
+    const t=Math.max(0,age/flight), f=travel(t), tail=travel(Math.max(0,t-.09))
+    const px=shell.launchX+(x-shell.launchX)*f,py=shell.launchY+(y-shell.launchY)*f
+    ctx.strokeStyle='#ffb663';ctx.lineWidth=1.3;ctx.beginPath()
+    ctx.moveTo(shell.launchX+(x-shell.launchX)*tail,shell.launchY+(y-shell.launchY)*tail)
+    ctx.lineTo(px,py);ctx.stroke();halo(ctx,px,py,7,'#ffdc92');return
+  }
+  const t=age-flight, glow=Math.exp(-2.7*t)
+  ctx.globalAlpha=.31*glow;halo(ctx,x,y,radius*1.45,shell.glow)
+  ctx.globalAlpha=glow;halo(ctx,x,y,Math.max(2,17*glow),'#fff1b4')
+  const travel=u=>1-Math.exp(-1.9*u)
+  const distance=travel(t), droop=style===2?.17:.11
+  for(const star of shell.stars){
+    if(t>=star.life)continue
+    const depth=1/(1-.22*star.z*distance)
+    const px=x+star.x*radius*distance*depth,py=y+(star.y*distance+droop*t*t)*radius*depth
+    const back=Math.max(0,t-(style===2?.24:.13)*(1+.35*t)),d=travel(back),bd=1/(1-.22*star.z*d)
+    const tx=x+star.x*radius*d*bd,ty=y+(star.y*d+droop*back*back)*radius*bd
+    const fade=Math.min(1,(star.life-t)*1.7),shine=.7+.3*Math.sin(t*13+star.phase)
+    ctx.strokeStyle=star.color;ctx.lineWidth=(.8+.52*(star.z+1))*fade+.2
+    ctx.globalAlpha=fade*(.43+.19*(star.z+1))*shine
+    ctx.beginPath();ctx.moveTo(tx,ty);ctx.quadraticCurveTo((tx+px)*.5,(ty+py)*.5-.7,px,py);ctx.stroke()
+    ctx.globalAlpha=fade*shine;ctx.fillStyle=star.z>.1?'#fff3c9':star.color
+    ctx.fillRect(px-.65,py-.65,depth*1.5,depth*1.5)
+  }
+  // Broken bands on the water follow the color and decay of each bloom.
+  for(let i=0;i<18;i++){
+    const k=i/18
+    ctx.globalAlpha=Math.exp(-1.7*t)*.25*(1-k)
+    ctx.fillStyle=shell.glow
+    const width=radius*(.09+.28*k)*(1+.4*Math.sin(i*8+time*2))
+    ctx.fillRect(x-width*.5+Math.sin(i*17+time)*radius*.08,h*(.867+.116*k),width,1+k)
+  }
   ctx.globalAlpha=1
 }
-function tick(now){paint(now);frame=sparks.length&&!paused?requestAnimationFrame(tick):0}
-export function burst(x=w*(.45+Math.random()*.48),y=h*(.1+Math.random()*.45)){
-  if(paused){paint(performance.now());firework(ctx,x,y,65,'#ffcc86',Math.floor(Math.random()*999));return}
-  const now=performance.now()
-  for(let i=0;i<85;i++)sparks.push({x,y,a:i*.074,speed:40+Math.random()*105,start:now,color:['#ffd085','#ff819c','#fff0c1'][i%3]})
-  sparks=sparks.slice(-600);if(!frame)frame=requestAnimationFrame(tick)
+function paint(){
+  ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over'
+  ctx.drawImage(base,0,0);ctx.scale(ratio,ratio);ctx.globalCompositeOperation='lighter'
+  for(const shell of shells){ctx.globalAlpha=1;drawShell(shell)}
+  ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over'
 }
-export function pause(value){paused=value;if(value){cancelAnimationFrame(frame);frame=0;sparks=[];paint(performance.now())}}
+function tick(now){
+  frame=0
+  if(paused||document.hidden)return
+  if(now-last>=30){
+    time+=Math.min(.08,(now-last)/1000);last=now
+    shells=shells.filter(s=>time-s.born<4.4)
+    if(time>=nextLaunch){burst();nextLaunch=time+1.5+Math.random()*.8}
+    paint()
+  }
+  frame=requestAnimationFrame(tick)
+}
+function resume(){
+  if(!frame&&!paused&&!document.hidden){last=performance.now();frame=requestAnimationFrame(tick)}
+}
+export function burst(x=w*(.53+Math.random()*.37),y=h*(w<650?.13+Math.random()*.21:.18+Math.random()*.29)){
+  addShell(x,y,paused?1.65:0)
+  paint()
+}
+export function pause(value){
+  paused=value;cancelAnimationFrame(frame);frame=0;resume()
+}
+document.addEventListener('visibilitychange',resume)
 new ResizeObserver(resize).observe(canvas)
-resize()
+resize();resume()
