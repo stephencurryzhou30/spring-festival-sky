@@ -1,7 +1,7 @@
 const canvas = document.querySelector('canvas')
 const ctx = canvas.getContext('2d')
 const base = document.createElement('canvas')
-let w, h, ratio, frame = 0, paused = false, time = 0, last = 0
+let w, h, ratio, frame = 0, time = 0, last = 0
 let shells = [], serial = 0, nextLaunch = 0
 const tau = 2 * Math.PI
 const palettes = [
@@ -136,7 +136,7 @@ function paint(){
 }
 function tick(now){
   frame=0
-  if(paused||document.hidden)return
+  if(document.hidden)return
   if(now-last>=30){
     time+=Math.min(.08,(now-last)/1000);last=now
     shells=shells.filter(s=>time-s.born<4.4)
@@ -146,14 +146,11 @@ function tick(now){
   frame=requestAnimationFrame(tick)
 }
 function resume(){
-  if(!frame&&!paused&&!document.hidden){last=performance.now();frame=requestAnimationFrame(tick)}
+  if(!frame&&!document.hidden){last=performance.now();frame=requestAnimationFrame(tick)}
 }
 export function burst(x=w*(.53+Math.random()*.37),y=h*(w<650?.13+Math.random()*.21:.18+Math.random()*.29)){
-  addShell(x,y,paused?1.65:0)
+  addShell(x,y)
   paint()
-}
-export function pause(value){
-  paused=value;cancelAnimationFrame(frame);frame=0;resume()
 }
 document.addEventListener('visibilitychange',resume)
 new ResizeObserver(resize).observe(canvas)
