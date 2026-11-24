@@ -40,7 +40,7 @@ jobs:
               for (const issue of data) {
                 if (issue.pull_request || !issue.title.startsWith('【新春祝福】')) continue
                 const body = issue.title.slice('【新春祝福】'.length).trim()
-                if (body) wishes.push({id:issue.id,title:'【新春祝福】'+body.slice(0,80),user:{login:issue.user?.login || '朋友'}})
+                if (body) wishes.push({id:issue.id,title:'【新春祝福】'+body.slice(0,80),user:{login:'匿名'}})
               }
             }
             require('node:fs').writeFileSync('public/wishes.json', JSON.stringify(wishes))
@@ -55,12 +55,12 @@ jobs:
           const url='https://spring-festival-wishes.stephencurryzhou30-festival.workers.dev/wishes'
           const origin='https://stephencurryzhou30.github.io'
           const post=()=>fetch(url,{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},
-            body:JSON.stringify({requestId:process.env.PROBE_ID,nickname:'',message:'新春留言连通性验证'})})
+            body:JSON.stringify({requestId:process.env.PROBE_ID,message:'新春留言连通性验证'})})
           const first=await post()
           assert.equal(first.status,201)
           assert.equal(first.headers.get('access-control-allow-origin'),origin)
           const wish=await first.json()
-          assert.equal(wish.nickname,'匿名朋友')
+          assert.equal(wish.nickname,'匿名')
           assert.equal((await (await post()).json()).id,wish.id)
           const {items}=await (await fetch(url)).json()
           assert(items.some(item=>item.id===wish.id && item.message===wish.message))

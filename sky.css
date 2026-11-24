@@ -17,3 +17,5 @@ dialog input{width:100%;padding:10px 12px;background:#230f1a;color:#fff1dd;borde
   .intro>p,.actions{margin:8px 0}.actions button{min-height:44px}
   dialog{max-height:92dvh;overflow-y:auto}
 }
+
+#wish-label{font-size:1.35rem;font-weight:650;margin:0 0 16px}#feedback:empty{display:none}#send{margin-top:12px}

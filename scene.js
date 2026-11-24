@@ -73,25 +73,57 @@ function resize(){
   addShell(w*.92,h*.43,2.42,1)
   nextLaunch=time+1.2;paint()
 }
-function addShell(x,y,age=0,style=serial%4){
-  const rand=random(++serial*8353), far=style===1?.72:1
-  const radius=Math.min(w*(w<650?.29:.165),h*.3)*far
+const patterns=['peony','ring','willow','fan','heart','spiral','palm']
+function direction(pattern,i,count,rotation,rand){
+  const fraction=(i+.5)/count
+  const angle=fraction*tau
+  const jitter=()=> (rand()-.5)*.06
+  switch(pattern){
+    case 'ring': {
+      const band=i%2===0?1:.62
+      const x=Math.cos(angle)*band, y=Math.sin(angle)*band
+      return [x*.92-y*.18,y*.58+x*.29,y*.52]
+    }
+    case 'heart': {
+      const y=13*Math.cos(angle)-5*Math.cos(2*angle)-2*Math.cos(3*angle)-Math.cos(4*angle)
+      return [Math.sin(angle)**3+jitter(),-y/16+jitter(),jitter()]
+    }
+    case 'fan': {
+      const ray=(i%9-4)*.29+Math.PI/2+jitter(), reach=.34+.76*fraction
+      return [Math.cos(ray)*reach,-Math.sin(ray)*reach,jitter()]
+    }
+    case 'spiral': {
+      const turn=fraction*tau*1.25+(i%3)*tau/3+rotation
+      return [fraction*Math.cos(turn),fraction*Math.sin(turn),.3*Math.sin(turn)]
+    }
+    case 'palm': {
+      const limb=(i%7)*tau/7+rotation+fraction*.32+jitter()
+      return [fraction*Math.cos(limb),fraction*Math.sin(limb)-.3,.24*Math.cos(limb)]
+    }
+    default: {
+      const z=1-2*fraction, azimuth=i*2.399963+rotation, ring=Math.sqrt(1-z*z)
+      const speed=(i%6===0?.49:1)*(.84+.22*rand())
+      return [Math.cos(azimuth)*ring*speed,Math.sin(azimuth)*ring*speed,z*speed]
+    }
+  }
+}
+function addShell(x,y,age=0,style=serial%patterns.length){
+  const rand=random(++serial*8353), pattern=patterns[style]
+  const palette=palettes[style%palettes.length]
+  const radius=Math.min(w*(w<650?.29:.165),h*.3)*(pattern==='ring'?.85:1)
   const stars=[], count=w<650?145:232
-  // Uniform points on a sphere keep the center and rim spatially distinct.
   const rotation=rand()*tau
   for(let i=0;i<count;i++){
-    const z=1-2*(i+.5)/count, a=i*2.399963+rotation, ring=Math.sqrt(1-z*z)
-    const inner=i%6===0, speed=(inner?.49:1)*(.84+.22*rand())
-    stars.push({x:Math.cos(a)*ring*speed,y:Math.sin(a)*ring*speed,z:z*speed,
-      life:1.4+rand()*1.1+(style===2?.9:0),phase:rand()*tau,
-      color:inner?'#fff4ca':palettes[style][Math.floor(rand()*3)]})
+    const [dx,dy,dz]=direction(pattern,i,count,rotation,rand)
+    stars.push({x:dx,y:dy,z:dz,life:1.4+rand()*1.1+(pattern==='willow'?.9:0),
+      phase:rand()*tau,color:palette[Math.floor(rand()*palette.length)]})
   }
-  shells.push({x,y,stars,radius,style,born:time-age,flight:.85,launchX:x-radius*.26,
-    launchY:h*.85,glow:palettes[style][1]})
+  shells.push({x,y,stars,radius,pattern,born:time-age,flight:.85,launchX:x-radius*.26,
+    launchY:h*.85,glow:palette[1]})
   if(shells.length>7)shells.shift()
 }
 function drawShell(shell){
-  const {x,y,radius,flight,style}=shell, age=time-shell.born
+  const {x,y,radius,flight,pattern}=shell, age=time-shell.born
   if(age<flight){
     const travel=t=>1-(1-t)**1.8
     const t=Math.max(0,age/flight), f=travel(t), tail=travel(Math.max(0,t-.09))
@@ -104,12 +136,12 @@ function drawShell(shell){
   ctx.globalAlpha=.31*glow;halo(ctx,x,y,radius*1.45,shell.glow)
   ctx.globalAlpha=glow;halo(ctx,x,y,Math.max(2,17*glow),'#fff1b4')
   const travel=u=>1-Math.exp(-1.9*u)
-  const distance=travel(t), droop=style===2?.17:.11
+  const distance=travel(t), droop=pattern==='willow'?.21:pattern==='palm'?.17:.085
   for(const star of shell.stars){
     if(t>=star.life)continue
     const depth=1/(1-.22*star.z*distance)
     const px=x+star.x*radius*distance*depth,py=y+(star.y*distance+droop*t*t)*radius*depth
-    const back=Math.max(0,t-(style===2?.24:.13)*(1+.35*t)),d=travel(back),bd=1/(1-.22*star.z*d)
+    const back=Math.max(0,t-(pattern==='willow'?.38:.13)*(1+.35*t)),d=travel(back),bd=1/(1-.22*star.z*d)
     const tx=x+star.x*radius*d*bd,ty=y+(star.y*d+droop*back*back)*radius*bd
     const fade=Math.min(1,(star.life-t)*1.7),shine=.7+.3*Math.sin(t*13+star.phase)
     ctx.strokeStyle=star.color;ctx.lineWidth=(.8+.52*(star.z+1))*fade+.2
