@@ -1,10 +1,9 @@
 :root{color-scheme:dark;font-family:"Microsoft YaHei",system-ui,sans-serif;color:#fff1d8;background:#14101d}
 *{box-sizing:border-box}
 body{margin:0}
-button,a,textarea{font:inherit}
-a{color:inherit;text-decoration:none}
-button,.actions a{border:1px solid transparent;cursor:pointer;border-radius:30px;background:#ffd591;color:#371b22;padding:10px 17px;font-weight:650;min-height:44px}
-button:focus-visible,a:focus-visible,textarea:focus-visible{outline:2px solid #fff;outline-offset:3px}
+button,textarea{font:inherit}
+button{border:1px solid transparent;cursor:pointer;border-radius:30px;background:#ffd591;color:#371b22;padding:10px 17px;font-weight:650;min-height:44px}
+button:focus-visible,textarea:focus-visible{outline:2px solid #fff;outline-offset:3px}
 #sky{isolation:isolate;overflow:hidden;position:relative;height:100vh;height:100svh;background:#111020}
 #sky,#burst{touch-action:manipulation}
 canvas,#stream{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
@@ -15,15 +14,7 @@ h1{margin:0;font:650 clamp(17px,3vw,28px)/1.3 "KaiTi","Songti SC",serif;color:#f
 #delivery{position:absolute;inset:auto 0 70px;text-align:center;pointer-events:none;color:#ffe8c1;margin:0}
 .bubble{position:absolute;left:100%;width:max-content;max-width:min(80vw,420px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 13px;border:1px solid #f3bc7f64;border-radius:30px;background:#21172bbd;color:#ffe3b9;font-size:14px;animation:drift 17s linear forwards}
 @keyframes drift{to{transform:translateX(calc(-100vw - 100%))}}
-#wall{max-width:1100px;margin:auto;padding:34px 5% 50px}
-h2{margin:0;font-size:27px}
-h2 span{color:#f5ae76;margin-right:6px}
-#status,dialog p{color:#dcc2bb;line-height:1.65}
-#cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:12px}
-article{padding:18px;border:1px solid #633a46;border-radius:14px;background:#2c1928;overflow-wrap:anywhere}
-article small{color:#e3ac8e}
-article p{line-height:1.55;margin:7px 0}
-#more{margin-top:16px}
+dialog p{color:#dcc2bb;line-height:1.65}
 dialog{width:min(440px,92vw);max-height:90dvh;border:1px solid #996053;border-radius:18px;background:#361927;color:#ffe5c1;padding:22px}
 dialog::backdrop{background:#110810b8}
 .close{float:right;background:transparent;color:inherit;font-size:24px;padding:0 7px;min-height:32px}
@@ -33,8 +24,9 @@ textarea{width:100%;background:#230f1a;border:1px solid #935c60;color:#fff1dd;bo
 #send{width:100%;margin-top:10px}
 #send:disabled{opacity:.5;cursor:default}
 @media(max-width:480px){
-  .sky-controls{flex-direction:column;gap:8px;padding-top:18px}
-  .actions{gap:6px}
-  .actions button,.actions a{font-size:14px;padding-inline:12px}
-  #delivery{bottom:100px}
+  .sky-controls{flex-direction:column;gap:10px;padding-top:28px;padding-bottom:calc(14px + env(safe-area-inset-bottom));background:linear-gradient(transparent,#101426e8)}
+  h1{font-size:22px;letter-spacing:.17em;text-shadow:0 2px 10px #291628}
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;width:min(100%,260px)}
+  .actions button{font-size:15px;padding-inline:10px}
+  #delivery{bottom:calc(92px + env(safe-area-inset-bottom))}
 }

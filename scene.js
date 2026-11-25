@@ -2,7 +2,7 @@ const canvas = document.querySelector('canvas')
 const ctx = canvas.getContext('2d')
 const base = document.createElement('canvas')
 const waterfront = new Image()
-let w, h, ratio, lighthouse, frame = 0, time = 0, last = 0
+let w, h, ratio, lighthouse, waterline, frame = 0, time = 0, last = 0
 let shells = [], serial = 0, patternIndex = 0, nextLaunch = 0
 const tau = 2 * Math.PI
 const styles = [
@@ -34,9 +34,10 @@ function paintWaterfront(){
 
   const scale=Math.max(w/waterfront.naturalWidth,h/waterfront.naturalHeight)
   const width=waterfront.naturalWidth*scale,height=waterfront.naturalHeight*scale
-  const x=(w-width)*.45,y=(h-height)*.72
+  const x=(w-width)*(w<h?.41:.45),y=(h-height)*.72
   c.drawImage(waterfront,x,y,width,height)
   lighthouse={x:x+width*.425,y:y+height*.411}
+  waterline=Math.min(h,y+height*.797)
 }
 function resize(){
   const rect=canvas.getBoundingClientRect()
@@ -170,9 +171,26 @@ function drawLighthouseBeam(){
   ctx.lineTo(x+length,y+h*.011);ctx.lineTo(x,y+1);ctx.fill()
   ctx.globalAlpha=1
 }
+function drawSea(){
+  if(waterline===undefined||waterline>=h)return
+  const bands=24, depth=h-waterline
+  const amplitude=Math.min(4.5,w*.012)
+  for(let i=0;i<bands;i++){
+    const progress=i/bands, next=(i+1)/bands
+    const row=Math.round((waterline+depth*progress)*ratio)
+    const bottom=Math.round((waterline+depth*next)*ratio)
+    const height=bottom-row
+    if(height<=0)continue
+    const spread=amplitude*progress**.72
+    const shift=Math.sin(progress*16-time*1.9)*spread
+    ctx.drawImage(base,0,row,base.width,height,shift-spread,row/ratio,w+2*spread,height/ratio)
+  }
+}
 function paint(){
   ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over'
-  ctx.drawImage(base,0,0);ctx.scale(ratio,ratio);ctx.globalCompositeOperation='lighter'
+  ctx.drawImage(base,0,0);ctx.scale(ratio,ratio)
+  drawSea()
+  ctx.globalCompositeOperation='lighter'
   drawLighthouseBeam()
   for(const shell of shells){ctx.globalAlpha=1;drawShell(shell)}
   ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over'
