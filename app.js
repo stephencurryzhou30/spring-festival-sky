@@ -16,8 +16,17 @@ function render(){
     const card=document.createElement('article'), by=document.createElement('small'), body=document.createElement('p')
     by.textContent='匿名';body.textContent=m.message;card.append(by,body);return card
   }))
-  $('status').textContent=messages.length?'已收到 '+messages.length+' 条祝福':'还没有来信，来送出第一句新春祝福吧。'
   $('more').hidden=visibleCount>=messages.length
+  renderStatus()
+}
+function renderStatus(){
+  if(liveUnavailable||archiveUnavailable){
+    $('status').textContent=messages.length?'已显示 '+messages.length+' 条祝福，部分留言暂时无法同步。':'暂时连不上留言服务，网页会自动重试。'
+  }else if(messages.length){
+    $('status').textContent='已收到 '+messages.length+' 条祝福'
+  }else{
+    $('status').textContent=liveChecked?'还没有人留言，来送出第一句祝福吧。':'正在收取祝福…'
+  }
 }
 async function readJson(url){
   const response=await fetch(url,{cache:'no-store',signal:AbortSignal.timeout(12000)})
@@ -44,24 +53,34 @@ async function readArchive(){
   archiveChecked=Date.now()
   return rows.map(wish=>({id:'github-'+wish.id,message:wish.title.slice(prefix.length)}))
 }
-function combine(){messages=[...live,...archive];render()}
+let liveUnavailable=false, archiveUnavailable=false, liveChecked=false
+function combine(){
+  const next=[...live,...archive]
+  if(next.length===messages.length&&next.every((wish,index)=>wish.id===messages[index].id&&wish.message===messages[index].message)){
+    renderStatus()
+    return
+  }
+  messages=next
+  render()
+}
 async function load(){
   if(busy)return
   busy=true
   const started=revision
   try{
-    const [current,old]=await Promise.allSettled([readLive(),readArchive()])
-    const previous=live[0]?.id
-    if(current.status==='fulfilled'&&started===revision)live=current.value
-    if(old.status==='fulfilled')archive=old.value
-    const next=[...live,...archive]
-    if(next.length!==messages.length||next.some((wish,index)=>wish.id!==messages[index].id||wish.message!==messages[index].message)){
-      messages=next
-      render()
-    }
-    if(current.status==='rejected'||old.status==='rejected')$('status').textContent='留言暂时无法同步，正在自动重试。'
-    else if($('status').textContent.startsWith('留言暂时')||$('status').textContent.startsWith('正在'))render()
-    if(live[0]&&live[0].id!==previous)showBubble(live[0])
+    await Promise.all([
+      readLive().then(rows=>{
+        const previous=live[0]?.id
+        if(started===revision)live=rows
+        liveChecked=true
+        liveUnavailable=false
+        if(live[0]&&live[0].id!==previous)showBubble(live[0])
+      },()=>{liveUnavailable=true}).then(combine),
+      readArchive().then(rows=>{
+        archive=rows
+        archiveUnavailable=false
+      },()=>{archiveUnavailable=true}).then(combine)
+    ])
   }finally{busy=false}
 }
 $('burst').onclick=()=>burst()
@@ -94,7 +113,7 @@ $('send').onclick=async()=>{
     clearTimeout(deliveryTimer)
     deliveryTimer=setTimeout(()=>$('delivery').textContent='',3500)
     $('feedback').textContent=''
-  }catch{$('feedback').textContent='暂时无法确认是否送达，请重试。'}
+  }catch{$('feedback').textContent='暂时连不上留言服务，无法确认送达。你的留言还在输入框里。'}
   finally{sending=false;$('wish').readOnly=false;updateComposer()}
 }
 updateComposer();showBubble();load()
