@@ -1,4 +1,4 @@
-import {burst} from './scene.js?v=sea-motion'
+import {burst} from './scene.js?v=coastal-ripples'
 const $ = id => document.getElementById(id)
 const endpoint='https://spring-festival-wishes-zhou.pages.dev/wishes'
 const prefix='【新春祝福】'

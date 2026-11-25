@@ -3,7 +3,7 @@ const ctx = canvas.getContext('2d')
 const base = document.createElement('canvas')
 const waterfront = new Image()
 let w, h, ratio, lighthouse, waterline, frame = 0, time = 0, last = 0
-let shells = [], serial = 0, patternIndex = 0, nextLaunch = 0
+let shells = [], ripples = [], serial = 0, patternIndex = 0, nextLaunch = 0
 const tau = 2 * Math.PI
 const styles = [
   {color:'#ffce80',core:'#fff2bc',shape:'peony',hang:.075},
@@ -15,6 +15,7 @@ const styles = [
   {color:'#ffe3a0',core:'#fff8db',shape:'brocade',hang:.2}
 ]
 const blooms=styles.map(makeBloom)
+const seaGlows=[makeSeaGlow('#ffd298'),makeSeaGlow('#b7c7ff')]
 function random(seed) {
   let state=seed
   return () => ((state=(Math.imul(1664525,state)+1013904223)>>>0)/4294967296)
@@ -23,6 +24,14 @@ function halo(c,x,y,r,color) {
   const g=c.createRadialGradient(x,y,0,x,y,r)
   g.addColorStop(0,color);g.addColorStop(1,'transparent')
   c.fillStyle=g;c.fillRect(x-r,y-r,r*2,r*2)
+}
+function makeSeaGlow(color){
+  const sprite=document.createElement('canvas')
+  sprite.width=64;sprite.height=16
+  const brush=sprite.getContext('2d')
+  brush.translate(32,8);brush.scale(1,.22)
+  halo(brush,0,0,32,color)
+  return sprite
 }
 function paintWaterfront(){
   const c=base.getContext('2d')
@@ -37,7 +46,18 @@ function paintWaterfront(){
   const x=(w-width)*(w<h?.41:.45),y=(h-height)*.72
   c.drawImage(waterfront,x,y,width,height)
   lighthouse={x:x+width*.425,y:y+height*.411}
-  waterline=Math.min(h,y+height*.797)
+  waterline=Math.min(h,y+height*.806)
+  const rand=random(707), depth=h-waterline
+  ripples=Array.from({length:96},()=>{
+    const warm=rand()<.76
+    const columns=[.148,.425,.47,.88]
+    const column=columns[Math.floor(rand()*columns.length)]
+    const u=warm?column+(rand()-.5)*.085:rand()
+    const v=rand()
+    return {x:x+width*u,y:waterline+v*depth,
+      length:(4+rand()*14)*(.62+v*.68),strength:(.035+rand()*.085)*Math.min(1,v*4),
+      phase:rand()*tau,speed:.65+rand()*.9,warm}
+  }).filter(ripple=>ripple.x>-20&&ripple.x<w+20)
 }
 function resize(){
   const rect=canvas.getBoundingClientRect()
@@ -149,13 +169,15 @@ function drawShell(shell){
     ctx.fillStyle=ray.tint
     ctx.fillRect(x+ray.dx*projected*reach,y+fall+(ray.dy*reach+ray.bend*reach*reach)*projected,size,size)
   }
-  // Broken bands on the water follow the color and decay of each bloom.
-  for(let i=0;i<18;i++){
-    const k=i/18
-    ctx.globalAlpha=Math.exp(-1.7*t)*.25*(1-k)
-    ctx.fillStyle=bloom.color
-    const width=radius*(.09+.28*k)*(1+.4*Math.sin(i*8+time*2))
-    ctx.fillRect(x-width*.5+Math.sin(i*17+time)*radius*.08,h*(.867+.116*k),width,1+k)
+  // Reflections appear as short, diffused flashes on the water.
+  if(waterline<h){
+    for(let i=0;i<12;i++){
+      const depth=(i+1)/13
+      const drift=Math.sin(i*7.1+t*.8)
+      const width=radius*(.08+.15*depth)
+      ctx.globalAlpha=Math.exp(-2.15*t)*(.11-.07*depth)*(.7+.3*drift)
+      ctx.drawImage(seaGlows[0],x-width*.5+drift*radius*.13,waterline+(h-waterline)*depth,width,2+depth*2)
+    }
   }
   ctx.globalAlpha=1
 }
@@ -172,25 +194,22 @@ function drawLighthouseBeam(){
   ctx.globalAlpha=1
 }
 function drawSea(){
-  if(waterline===undefined||waterline>=h)return
-  const bands=24, depth=h-waterline
-  const amplitude=Math.min(4.5,w*.012)
-  for(let i=0;i<bands;i++){
-    const progress=i/bands, next=(i+1)/bands
-    const row=Math.round((waterline+depth*progress)*ratio)
-    const bottom=Math.round((waterline+depth*next)*ratio)
-    const height=bottom-row
-    if(height<=0)continue
-    const spread=amplitude*progress**.72
-    const shift=Math.sin(progress*16-time*1.9)*spread
-    ctx.drawImage(base,0,row,base.width,height,shift-spread,row/ratio,w+2*spread,height/ratio)
+  for(const ripple of ripples){
+    const angle=ripple.phase+time*ripple.speed
+    const swell=(1+Math.sin(angle))*.5
+    const x=ripple.x+Math.cos(angle)*1.25
+    const y=ripple.y+Math.sin(angle*.8)*.65
+    const width=ripple.length*(.78+swell*.45)
+    ctx.globalAlpha=ripple.strength*swell*swell
+    ctx.drawImage(seaGlows[ripple.warm?0:1],x-width*.5,y,width,2.5)
   }
+  ctx.globalAlpha=1
 }
 function paint(){
   ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over'
   ctx.drawImage(base,0,0);ctx.scale(ratio,ratio)
-  drawSea()
   ctx.globalCompositeOperation='lighter'
+  drawSea()
   drawLighthouseBeam()
   for(const shell of shells){ctx.globalAlpha=1;drawShell(shell)}
   ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over'
