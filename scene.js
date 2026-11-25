@@ -23,18 +23,92 @@ function halo(c,x,y,r,color) {
   g.addColorStop(0,color);g.addColorStop(1,'transparent')
   c.fillStyle=g;c.fillRect(x-r,y-r,r*2,r*2)
 }
-function pavilion(c,x,y,s,levels){
-  c.save();c.translate(x,y);c.scale(s,s)
-  for(let i=0;i<levels;i++){
-    const k=1-i*.16, v=-i*26
-    c.fillStyle='#310f22';c.fillRect(-24*k,v-23,48*k,25)
-    c.fillStyle='#ef9d64'
-    for(let j=-2;j<=2;j++)c.fillRect(j*8*k-1,v-18,2.5*k,8)
-    c.beginPath();c.moveTo(-41*k,v-22);c.quadraticCurveTo(-26*k,v-23,-10*k,v-37)
-    c.lineTo(10*k,v-37);c.quadraticCurveTo(24*k,v-23,41*k,v-22);c.lineTo(44*k,v-26)
-    c.quadraticCurveTo(43*k,v-16,0,v-20);c.quadraticCurveTo(-43*k,v-16,-44*k,v-26);c.closePath()
-    c.fillStyle='#43182a';c.fill();c.strokeStyle='#dd9468';c.lineWidth=.9;c.stroke()
+function silhouette(c, points, fill, edge){
+  c.beginPath()
+  c.moveTo(...points[0])
+  for(const point of points.slice(1))c.lineTo(...point)
+  c.closePath()
+  c.fillStyle=fill
+  c.fill()
+  if(edge){c.strokeStyle=edge;c.lineWidth=1;c.stroke()}
+}
+function drawShanghai(c,w,h,shore,rand){
+  const scale=Math.min(w/860,h/520,1.8)
+  c.save()
+  c.translate(w*.5,shore)
+  c.scale(scale,scale)
+  const facade='#23162d', edge='#a06678', gold='#ffcf89'
+  for(let x=-w/(2*scale);x<w/(2*scale);){
+    const width=16+rand()*26, height=23+rand()*43
+    c.fillStyle=rand()>.5?'#3e273e':'#311f35'
+    c.fillRect(x,-height,width, height)
+    c.fillStyle='#efa68086'
+    for(let y=-height+6;y<-4;y+=7){
+      for(let column=4;column<width-3;column+=7){
+        if(rand()>.46)c.fillRect(x+column,y,2,2)
+      }
+    }
+    x+=width+3+rand()*7
   }
+
+  // Shanghai Tower's turning glass facade.
+  c.beginPath();c.moveTo(216,0);c.bezierCurveTo(211,-43,238,-145,246,-235)
+  c.quadraticCurveTo(253,-246,267,-243);c.bezierCurveTo(281,-167,272,-68,285,0)
+  c.closePath()
+  c.save();c.clip()
+  const glass=c.createLinearGradient(210,0,285,0)
+  glass.addColorStop(0,facade);glass.addColorStop(.66,'#72506d');glass.addColorStop(1,'#382a3e')
+  c.fillStyle=glass;c.fillRect(210,-248,80,249)
+  for(let y=-238;y<0;y+=5){
+    c.fillStyle=y%3===0?'#ffcd967c':'#dda2be36'
+    c.fillRect(215,y,71,1)
+  }
+  c.strokeStyle='#ffd298b8';c.lineWidth=2
+  c.beginPath();c.moveTo(245,-245);c.bezierCurveTo(286,-164,221,-84,274,0);c.stroke()
+  c.restore()
+  c.strokeStyle=edge;c.lineWidth=1;c.stroke()
+
+  // The open crown of the World Financial Center.
+  silhouette(c,[[133,0],[145,-201],[179,-201],[187,0]],'#342b49',edge)
+  for(let y=-193;y<0;y+=7){c.fillStyle='#d8b2ec58';c.fillRect(145-(y+193)*.04,y,36,1)}
+  silhouette(c,[[150,-194],[174,-194],[172,-179],[153,-179]],'#44203a','#e0b8cf')
+  c.fillStyle='#f4c4e38c';c.fillRect(146,-174,31,1.4)
+
+  // Jin Mao Tower's stacked, illuminated setbacks.
+  for(let level=0;level<9;level++){
+    const height=30-level*1.6, half=28-level*2.7, y=-level*17
+    silhouette(c,[[98-half,y],[98-half+2,y-height],[98+half-2,y-height],[98+half,y]],facade,edge)
+    c.fillStyle='#deb281a8';c.fillRect(100-half,y-height+2,2*half-4,1.6)
+  }
+  c.fillStyle=gold;c.fillRect(97,-175,2,24)
+
+  // Oriental Pearl Tower, with three observation spheres and tripod supports.
+  c.strokeStyle='#e2a2ac';c.lineWidth=2
+  c.beginPath();c.moveTo(-122,0);c.lineTo(-98,-117);c.lineTo(-74,0);c.stroke()
+  c.fillStyle='#f4c1b4';c.fillRect(-102,-183,8,184);c.fillRect(-99,-218,2,38)
+  for(const [y,radius] of [[-45,25],[-118,19],[-177,8]]){
+    halo(c,-98,y,radius*1.65,'#ff899d6a')
+    const sphere=c.createRadialGradient(-103,y-radius*.34,1,-98,y,radius)
+    sphere.addColorStop(0,'#ffe0bb');sphere.addColorStop(.49,'#d67893');sphere.addColorStop(1,'#67395d')
+    c.fillStyle=sphere;c.beginPath();c.ellipse(-98,y,radius,radius*.83,0,0,tau);c.fill()
+    c.strokeStyle='#ffd1ac';c.lineWidth=1.3
+    c.beginPath();c.ellipse(-98,y,radius,3.5,0,0,tau);c.stroke()
+  }
+
+  // Bund facades frame the river with cornices, arched windows and a clock tower.
+  for(const [x,width,height] of [[-381,64,40],[-317,56,47],[-261,83,44],[-178,62,35],[-34,57,33]]){
+    c.fillStyle='#51323a';c.fillRect(x,-height,width,height)
+    c.fillStyle='#e6a875';c.fillRect(x,-height,width,2);c.fillRect(x,-height/2,width,1)
+    for(let dx=7;dx<width-4;dx+=10){
+      c.fillStyle='#ffce86a8'
+      c.beginPath();c.roundRect(x+dx,-height+7,4,9,[2,2,0,0]);c.fill()
+      c.fillRect(x+dx,-height/2+4,4,6)
+    }
+  }
+  silhouette(c,[[-232,-44],[-232,-86],[-225,-86],[-225,-97],[-218,-103],[-211,-97],[-211,-86],[-204,-86],[-204,-44]],'#5c383f','#d69a6e')
+  c.fillStyle=gold;c.beginPath();c.arc(-218,-75,5,0,tau);c.fill()
+  c.strokeStyle='#59364b';c.beginPath();c.moveTo(-218,-78);c.lineTo(-218,-75);c.lineTo(-215,-75);c.stroke()
+  c.fillStyle='#ffbb797e';c.fillRect(-w/(2*scale),-1,w/scale,1.5)
   c.restore()
 }
 
@@ -52,20 +126,8 @@ function resize(){
     c.fillStyle='rgba(255,227,195,'+(rand()*.55)+')'
     c.fillRect(rand()*w,rand()*h*.8,1,1)
   }
-  for(let layer=0;layer<3;layer++){
-    const y=h*(.74+layer*.05)
-    c.fillStyle=['#553649','#412b40','#2b2032'][layer]
-    c.beginPath();c.moveTo(0,horizon)
-    for(let x=0;x<w+7;x+=6)c.lineTo(x,y+12*Math.sin(x/95+layer*2)+6*Math.cos(x/38+layer))
-    c.lineTo(w,horizon);c.closePath();c.fill()
-  }
-  for(let i=0;i<42;i++){
-    const x=w*rand(), s=.16+rand()*.22
-    pavilion(c,x,horizon,s,1+Math.floor(rand()*2))
-    halo(c,x,horizon-3,6,'#ffb06540')
-  }
-  pavilion(c,w*.80,horizon,w<650?.79:1.10,3)
-  pavilion(c,w*.91,horizon,.65,2)
+  halo(c,w*.57,horizon,Math.min(w*.73,h*.76),'#f89c7546')
+  drawShanghai(c,w,h,horizon,rand)
   const water=c.createLinearGradient(0,horizon,0,h)
   water.addColorStop(0,'#402535');water.addColorStop(1,'#140f1f')
   c.fillStyle=water;c.fillRect(0,horizon,w,h-horizon)
@@ -74,6 +136,16 @@ function resize(){
     c.fillStyle='rgba(237,151,99,'+(rand()*.17*(1-y*.65))+')'
     c.fillRect(x,horizon+y*(h-horizon),len,.8)
   }
+  for(const [position,color] of [[.39,'#f489aa'],[.55,'#ffd19a'],[.68,'#d9a3e7']]){
+    const center=w*position
+    for(let i=0;i<29;i++){
+      const distance=rand(), width=(3+distance*24)*rand()
+      c.globalAlpha=(1-distance)*.35
+      c.fillStyle=color
+      c.fillRect(center+(rand()-.5)*(8+distance*44),horizon+distance*(h-horizon),width,1)
+    }
+  }
+  c.globalAlpha=1
   shells=[]
   addShell(w*.62,h*.33,1.52,0)
   addShell(w*.25,h*.52,1.68,1,.76)
