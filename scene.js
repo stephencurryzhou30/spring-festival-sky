@@ -1,7 +1,7 @@
 const canvas = document.querySelector('canvas')
 const ctx = canvas.getContext('2d')
 const base = document.createElement('canvas')
-let w, h, ratio, frame = 0, time = 0, last = 0
+let w, h, ratio, lighthouse, frame = 0, time = 0, last = 0
 let shells = [], serial = 0, patternIndex = 0, nextLaunch = 0
 const tau = 2 * Math.PI
 const styles = [
@@ -32,109 +32,93 @@ function silhouette(c, points, fill, edge){
   c.fill()
   if(edge){c.strokeStyle=edge;c.lineWidth=1;c.stroke()}
 }
-function drawShanghai(c,w,h,shore,rand){
-  const scale=Math.min(w/860,h/520,1.8)
+function drawVilla(c,x,y,width,height){
   c.save()
-  c.translate(w*.5,shore)
-  c.scale(scale,scale)
-  const facade='#23162d', edge='#a06678', gold='#ffcf89'
-  for(const [x,y,color] of [[-98,-60,'#ff828c25'],[162,-62,'#a28aff22'],[257,-90,'#ffc49620']])halo(c,x,y,114,color)
-  for(let x=-w/(2*scale);x<w/(2*scale);){
-    const width=16+rand()*26, height=23+rand()*43
-    c.fillStyle=rand()>.5?'#3e273e':'#311f35'
-    c.fillRect(x,-height,width,height)
-    c.fillStyle='#1f192f'
-    c.fillRect(x+width*.73,-height,width*.27,height)
-    c.fillStyle='#d4907e61'
-    c.fillRect(x+2,-height,width-4,1)
-    c.fillRect(x+width*.26,-height-4,width*.41,4)
-    c.fillStyle='#efa68086'
-    for(let y=-height+6;y<-4;y+=7){
-      for(let column=4;column<width-3;column+=7){
-        if(rand()>.46)c.fillRect(x+column,y,2,2)
-      }
-    }
-    x+=width+3+rand()*7
-  }
-
-  // Shanghai Tower's turning glass facade.
-  c.beginPath();c.moveTo(216,0);c.bezierCurveTo(211,-43,238,-145,246,-235)
-  c.quadraticCurveTo(253,-246,267,-243);c.bezierCurveTo(281,-167,272,-68,285,0)
-  c.closePath()
-  c.save();c.clip()
-  const glass=c.createLinearGradient(210,0,285,0)
-  glass.addColorStop(0,facade);glass.addColorStop(.66,'#72506d');glass.addColorStop(1,'#382a3e')
-  c.fillStyle=glass;c.fillRect(210,-248,80,249)
-  for(let y=-238;y<0;y+=5){
-    c.fillStyle=y%3===0?'#ffcd967c':'#dda2be36'
-    c.fillRect(215,y,71,1)
-    for(let x=223;x<284;x+=6){
-      if(rand()>.64)c.fillRect(x,y+1,3,2)
-    }
-  }
-  c.strokeStyle='#ffd298b8';c.lineWidth=2
-  c.beginPath();c.moveTo(245,-245);c.bezierCurveTo(286,-164,221,-84,274,0);c.stroke()
-  c.restore()
-  c.strokeStyle=edge;c.lineWidth=1;c.stroke()
-
-  // The open crown of the World Financial Center.
-  silhouette(c,[[133,0],[145,-201],[179,-201],[187,0]],'#342b49',edge)
-  for(let y=-193;y<0;y+=7){c.fillStyle='#d8b2ec58';c.fillRect(145-(y+193)*.04,y,36,1)}
-  silhouette(c,[[150,-194],[174,-194],[172,-179],[153,-179]],'#44203a','#e0b8cf')
-  c.fillStyle='#f4c4e38c';c.fillRect(146,-174,31,1.4)
-  c.strokeStyle='#b3acf376';c.lineWidth=.7
-  for(let x=149;x<180;x+=7){
-    c.beginPath();c.moveTo(x,-171);c.lineTo(x+(x-164)*.3,0);c.stroke()
-  }
-
-  // Jin Mao Tower's stacked, illuminated setbacks.
-  for(let level=0;level<9;level++){
-    const height=30-level*1.6, half=28-level*2.7, y=-level*17
-    silhouette(c,[[98-half,y],[98-half+2,y-height],[98+half-2,y-height],[98+half,y]],facade,edge)
-    c.fillStyle='#deb281a8';c.fillRect(100-half,y-height+2,2*half-4,1.6)
-  }
-  c.fillStyle=gold;c.fillRect(97,-175,2,24)
-
-  // Oriental Pearl Tower, with three observation spheres and tripod supports.
-  c.strokeStyle='#e2a2ac';c.lineWidth=2
-  c.beginPath();c.moveTo(-122,0);c.lineTo(-98,-117);c.lineTo(-74,0);c.stroke()
-  c.fillStyle='#f4c1b4';c.fillRect(-102,-183,8,184);c.fillRect(-99,-218,2,38)
-  for(const [y,radius] of [[-45,25],[-118,19],[-177,8]]){
-    halo(c,-98,y,radius*1.65,'#ff899d6a')
-    const sphere=c.createRadialGradient(-103,y-radius*.34,1,-98,y,radius)
-    sphere.addColorStop(0,'#ffe0bb');sphere.addColorStop(.49,'#d67893');sphere.addColorStop(1,'#67395d')
-    c.fillStyle=sphere;c.beginPath();c.ellipse(-98,y,radius,radius*.83,0,0,tau);c.fill()
-    c.strokeStyle='#ffd1ac';c.lineWidth=1.3
-    c.beginPath();c.ellipse(-98,y,radius,3.5,0,0,tau);c.stroke()
-  }
-
-  // Bund facades frame the river with cornices, arched windows and a clock tower.
-  for(const [x,width,height] of [[-381,64,40],[-317,56,47],[-261,83,44],[-178,62,35],[-34,57,33]]){
-    const stone=c.createLinearGradient(x,-height,x,0)
-    stone.addColorStop(0,'#81514b');stone.addColorStop(1,'#3d2836')
-    c.fillStyle=stone;c.fillRect(x,-height,width,height)
-    c.fillStyle='#e6a875';c.fillRect(x,-height,width,2);c.fillRect(x,-height/2,width,1)
-    silhouette(c,[[x+3,-height],[x+width*.5,-height-7],[x+width-3,-height]],'#644051','#bc856d')
-    c.fillStyle='#291e31';c.fillRect(x+width-2,-height+2,2,height-2)
-    for(let dx=7;dx<width-4;dx+=10){
-      c.fillStyle='#ffce86a8'
-      c.beginPath();c.roundRect(x+dx,-height+7,4,9,[2,2,0,0]);c.fill()
-      c.fillRect(x+dx,-height/2+4,4,6)
-      c.fillStyle='#cf91775e';c.fillRect(x+dx-2,-height+5,1,height-7)
-    }
-  }
-  silhouette(c,[[-232,-44],[-232,-86],[-225,-86],[-225,-97],[-218,-103],[-211,-97],[-211,-86],[-204,-86],[-204,-44]],'#5c383f','#d69a6e')
-  c.fillStyle=gold;c.beginPath();c.arc(-218,-75,5,0,tau);c.fill()
-  c.strokeStyle='#59364b';c.beginPath();c.moveTo(-218,-78);c.lineTo(-218,-75);c.lineTo(-215,-75);c.stroke()
-  const left=-w/(2*scale)
-  c.fillStyle='#291c2e';c.fillRect(left,-4,w/scale,4)
-  c.fillStyle='#ffbb797e';c.fillRect(left,-1,w/scale,1.5)
-  for(let x=left+8;x<-110;x+=24){
-    c.fillStyle='#ecb080';c.fillRect(x,-9,1,6)
-    halo(c,x,-9,5,'#ffd39982')
+  c.translate(x,y)
+  const stone=c.createLinearGradient(0,-height,0,0)
+  stone.addColorStop(0,'#916455');stone.addColorStop(1,'#382938')
+  c.fillStyle=stone;c.fillRect(0,-height,width,height)
+  silhouette(c,[[-4,-height],[width*.18,-height-9],[width*.79,-height-9],[width+4,-height]],'#683944','#ca8671')
+  c.fillStyle='#d8a784b0';c.fillRect(0,-height,width,1.2)
+  c.fillRect(0,-height*.45,width,.8)
+  for(let window=6;window<width-5;window+=9){
+    c.fillStyle='#ffd49b99'
+    c.beginPath();c.roundRect(window,-height+4,3,5,[1.4,1.4,0,0]);c.fill()
+    c.fillRect(window,-6,3,3)
   }
   c.restore()
-  return scale
+}
+
+function drawYantai(c,width,height,shore,rand){
+  const scale=Math.min(width/820,height/510,1.85)
+  const left=-width/(2*scale),right=-left
+  c.save()
+  c.translate(width*.5,shore);c.scale(scale,scale)
+  halo(c,170,-28,200,'#e89d7238')
+
+  // The far shore and modern waterfront sit behind the wooded headland.
+  c.beginPath();c.moveTo(left,0);c.lineTo(left,-19)
+  c.bezierCurveTo(-165,-40,-110,-22,-61,-16)
+  c.bezierCurveTo(34,-38,92,-29,147,-22)
+  c.bezierCurveTo(241,-48,right-90,-31,right,-37)
+  c.lineTo(right,0);c.closePath();c.fillStyle='#4d3650';c.fill()
+  for(let x=-4;x<right;x+=13+rand()*12){
+    const towerHeight=12+rand()*29, towerWidth=9+rand()*11
+    c.fillStyle='#32263e';c.fillRect(x,-towerHeight,towerWidth,towerHeight)
+    for(let y=-towerHeight+4;y<0;y+=4){
+      c.fillStyle=rand()>.35?'#fbd19881':'#c28eb254'
+      c.fillRect(x+2,y,towerWidth-4,.85)
+    }
+  }
+  silhouette(c,[[164,0],[164,-113],[171,-119],[189,-119],[189,0]],'#353452','#ad8299')
+  c.fillStyle='#d6b3dd82'
+  for(let y=-111;y<-4;y+=4)c.fillRect(168,y,17,1)
+  c.fillStyle='#f7af90';c.fillRect(169,-120,17,1.4)
+
+  // Yantai Hill rises directly out of Zhifu Bay.
+  c.beginPath();c.moveTo(left,0);c.lineTo(left,-42)
+  c.bezierCurveTo(-330,-56,-313,-86,-270,-98)
+  c.bezierCurveTo(-245,-115,-223,-122,-199,-121)
+  c.bezierCurveTo(-149,-124,-133,-92,-113,-75)
+  c.bezierCurveTo(-88,-58,-73,-41,-51,-30)
+  c.quadraticCurveTo(-15,-19,2,0);c.closePath()
+  const hill=c.createLinearGradient(0,-122,0,0)
+  hill.addColorStop(0,'#342e42');hill.addColorStop(1,'#201f35')
+  c.fillStyle=hill;c.fill()
+  for(let i=0;i<125;i++){
+    const x=-345+rand()*301,y=-22-rand()*26-Math.max(0,1-Math.abs(x+208)/150)*54
+    c.fillStyle=rand()>.45?'#524154':'#28283c'
+    c.beginPath();c.ellipse(x,y,2+rand()*5,1+rand()*4,0,0,tau);c.fill()
+  }
+  for(const villa of [[-331,-28,57,27],[-277,-44,48,23],[-163,-39,56,29],[-108,-19,51,24],[31,0,67,26],[105,0,49,20]]){
+    drawVilla(c,...villa)
+  }
+  c.strokeStyle='#e6a17c8c';c.lineWidth=1
+  c.beginPath();c.moveTo(left,-4);c.bezierCurveTo(-276,-16,-76,5,4,-2)
+  c.lineTo(right,-2);c.stroke()
+  for(let x=left+9;x<right;x+=20){
+    c.fillStyle='#d69375';c.fillRect(x,-7,1,5)
+    halo(c,x,-7,4,'#ffd0a68a')
+  }
+
+  // The ivory lighthouse has a broad, stone fort-style base.
+  c.save();c.translate(-212,-116)
+  silhouette(c,[[-30,0],[-26,-20],[-20,-20],[-20,-16],[20,-16],[20,-20],[26,-20],[30,0]],'#907783','#e0ad93')
+  c.fillStyle='#503c52';c.fillRect(-22,-7,44,2)
+  const limestone=c.createLinearGradient(-13,0,13,0)
+  limestone.addColorStop(0,'#a08996');limestone.addColorStop(.46,'#ffedc9');limestone.addColorStop(1,'#b89da2')
+  silhouette(c,[[-12,-15],[-8,-94],[8,-94],[12,-15]],limestone,'#f9d7b2')
+  for(let y=-84;y<-20;y+=12){c.fillStyle='#806d7f';c.fillRect(-1.3,y,2.6,4.5)}
+  silhouette(c,[[-13,-94],[-10,-99],[10,-99],[13,-94]],'#dac0ae','#ffe7c0')
+  c.fillStyle='#ffdfa0';c.fillRect(-7.5,-111,15,12)
+  c.fillStyle='#b0827f'
+  for(let x=-6;x<8;x+=4)c.fillRect(x,-111,1,12)
+  silhouette(c,[[-11,-111],[-7,-117],[7,-117],[11,-111]],'#7c5562','#ffcea4')
+  c.fillStyle='#ffd7ab';c.fillRect(-.5,-122,1,5)
+  halo(c,0,-105,15,'#ffdc9e85')
+  c.restore()
+  c.restore()
+  return {x:width*.5-212*scale,y:shore-221*scale,scale}
 }
 
 function resize(){
@@ -145,24 +129,24 @@ function resize(){
   const c=base.getContext('2d');c.scale(ratio,ratio)
   const rand=random(2718), horizon=h*.86
   const sky=c.createLinearGradient(0,0,0,h)
-  sky.addColorStop(0,'#251025');sky.addColorStop(.56,'#46182f');sky.addColorStop(.86,'#833846');sky.addColorStop(1,'#261528')
+  sky.addColorStop(0,'#181428');sky.addColorStop(.56,'#37213b');sky.addColorStop(.86,'#754651');sky.addColorStop(1,'#241b31')
   c.fillStyle=sky;c.fillRect(0,0,w,h)
   for(let i=0;i<200;i++){
     c.fillStyle='rgba(255,227,195,'+(rand()*.55)+')'
     c.fillRect(rand()*w,rand()*h*.8,1,1)
   }
   halo(c,w*.57,horizon,Math.min(w*.73,h*.76),'#f89c7546')
-  const cityScale=drawShanghai(c,w,h,horizon,rand)
+  lighthouse=drawYantai(c,w,h,horizon,rand)
   const water=c.createLinearGradient(0,horizon,0,h)
-  water.addColorStop(0,'#402535');water.addColorStop(1,'#140f1f')
+  water.addColorStop(0,'#392e45');water.addColorStop(1,'#101728')
   c.fillStyle=water;c.fillRect(0,horizon,w,h-horizon)
   for(let i=0;i<620;i++){
     const x=rand()*w,y=rand(),len=1+rand()*(1+y*14)
     c.fillStyle='rgba(237,151,99,'+(rand()*.17*(1-y*.65))+')'
     c.fillRect(x,horizon+y*(h-horizon),len,.8)
   }
-  for(const [building,color] of [[-317,'#fcb479'],[-218,'#ffd19a'],[-98,'#f489aa'],[98,'#ffbb8e'],[163,'#bca5ef'],[254,'#e5b1d7']]){
-    const center=w*.5+building*cityScale
+  for(const [building,color] of [[-303,'#efad83'],[-212,'#ffda9d'],[-106,'#e9ad87'],[54,'#ffbf94'],[171,'#c1a8dd'],[262,'#e8b2b9']]){
+    const center=w*.5+building*lighthouse.scale
     for(let i=0;i<29;i++){
       const distance=rand(), width=(3+distance*24)*rand()
       c.globalAlpha=(1-distance)*.35
@@ -284,7 +268,17 @@ function drawShell(shell){
   }
   ctx.globalAlpha=1
 }
-function drawRiverBoat(){
+function drawLighthouseBeam(){
+  const {x,y,scale}=lighthouse
+  const sweep=Math.sin(time*.54), direction=sweep<0?-1:1
+  const reach=Math.max(35,w*.54*Math.abs(sweep))
+  const beam=ctx.createLinearGradient(x,y,x+direction*reach,y)
+  beam.addColorStop(0,'#ffe3b464');beam.addColorStop(1,'#ffe3b400')
+  ctx.globalAlpha=.3+.32*Math.abs(sweep)
+  silhouette(ctx,[[x,y-scale],[x+direction*reach,y-16*scale],[x+direction*reach,y+8*scale],[x,y+scale]],beam)
+  ctx.globalAlpha=1
+}
+function drawHarborBoat(){
   const size=Math.min(w/780,h/560,1.25)
   const x=(((time*.016+.28)%1)*1.16-.08)*w, y=h*.918
   ctx.save()
@@ -303,9 +297,10 @@ function drawRiverBoat(){
 function paint(){
   ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over'
   ctx.drawImage(base,0,0);ctx.scale(ratio,ratio);ctx.globalCompositeOperation='lighter'
+  drawLighthouseBeam()
   for(const shell of shells){ctx.globalAlpha=1;drawShell(shell)}
   ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over'
-  drawRiverBoat()
+  drawHarborBoat()
 }
 function tick(now){
   frame=0
