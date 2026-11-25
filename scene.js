@@ -38,10 +38,16 @@ function drawShanghai(c,w,h,shore,rand){
   c.translate(w*.5,shore)
   c.scale(scale,scale)
   const facade='#23162d', edge='#a06678', gold='#ffcf89'
+  for(const [x,y,color] of [[-98,-60,'#ff828c25'],[162,-62,'#a28aff22'],[257,-90,'#ffc49620']])halo(c,x,y,114,color)
   for(let x=-w/(2*scale);x<w/(2*scale);){
     const width=16+rand()*26, height=23+rand()*43
     c.fillStyle=rand()>.5?'#3e273e':'#311f35'
-    c.fillRect(x,-height,width, height)
+    c.fillRect(x,-height,width,height)
+    c.fillStyle='#1f192f'
+    c.fillRect(x+width*.73,-height,width*.27,height)
+    c.fillStyle='#d4907e61'
+    c.fillRect(x+2,-height,width-4,1)
+    c.fillRect(x+width*.26,-height-4,width*.41,4)
     c.fillStyle='#efa68086'
     for(let y=-height+6;y<-4;y+=7){
       for(let column=4;column<width-3;column+=7){
@@ -62,6 +68,9 @@ function drawShanghai(c,w,h,shore,rand){
   for(let y=-238;y<0;y+=5){
     c.fillStyle=y%3===0?'#ffcd967c':'#dda2be36'
     c.fillRect(215,y,71,1)
+    for(let x=223;x<284;x+=6){
+      if(rand()>.64)c.fillRect(x,y+1,3,2)
+    }
   }
   c.strokeStyle='#ffd298b8';c.lineWidth=2
   c.beginPath();c.moveTo(245,-245);c.bezierCurveTo(286,-164,221,-84,274,0);c.stroke()
@@ -73,6 +82,10 @@ function drawShanghai(c,w,h,shore,rand){
   for(let y=-193;y<0;y+=7){c.fillStyle='#d8b2ec58';c.fillRect(145-(y+193)*.04,y,36,1)}
   silhouette(c,[[150,-194],[174,-194],[172,-179],[153,-179]],'#44203a','#e0b8cf')
   c.fillStyle='#f4c4e38c';c.fillRect(146,-174,31,1.4)
+  c.strokeStyle='#b3acf376';c.lineWidth=.7
+  for(let x=149;x<180;x+=7){
+    c.beginPath();c.moveTo(x,-171);c.lineTo(x+(x-164)*.3,0);c.stroke()
+  }
 
   // Jin Mao Tower's stacked, illuminated setbacks.
   for(let level=0;level<9;level++){
@@ -97,19 +110,31 @@ function drawShanghai(c,w,h,shore,rand){
 
   // Bund facades frame the river with cornices, arched windows and a clock tower.
   for(const [x,width,height] of [[-381,64,40],[-317,56,47],[-261,83,44],[-178,62,35],[-34,57,33]]){
-    c.fillStyle='#51323a';c.fillRect(x,-height,width,height)
+    const stone=c.createLinearGradient(x,-height,x,0)
+    stone.addColorStop(0,'#81514b');stone.addColorStop(1,'#3d2836')
+    c.fillStyle=stone;c.fillRect(x,-height,width,height)
     c.fillStyle='#e6a875';c.fillRect(x,-height,width,2);c.fillRect(x,-height/2,width,1)
+    silhouette(c,[[x+3,-height],[x+width*.5,-height-7],[x+width-3,-height]],'#644051','#bc856d')
+    c.fillStyle='#291e31';c.fillRect(x+width-2,-height+2,2,height-2)
     for(let dx=7;dx<width-4;dx+=10){
       c.fillStyle='#ffce86a8'
       c.beginPath();c.roundRect(x+dx,-height+7,4,9,[2,2,0,0]);c.fill()
       c.fillRect(x+dx,-height/2+4,4,6)
+      c.fillStyle='#cf91775e';c.fillRect(x+dx-2,-height+5,1,height-7)
     }
   }
   silhouette(c,[[-232,-44],[-232,-86],[-225,-86],[-225,-97],[-218,-103],[-211,-97],[-211,-86],[-204,-86],[-204,-44]],'#5c383f','#d69a6e')
   c.fillStyle=gold;c.beginPath();c.arc(-218,-75,5,0,tau);c.fill()
   c.strokeStyle='#59364b';c.beginPath();c.moveTo(-218,-78);c.lineTo(-218,-75);c.lineTo(-215,-75);c.stroke()
-  c.fillStyle='#ffbb797e';c.fillRect(-w/(2*scale),-1,w/scale,1.5)
+  const left=-w/(2*scale)
+  c.fillStyle='#291c2e';c.fillRect(left,-4,w/scale,4)
+  c.fillStyle='#ffbb797e';c.fillRect(left,-1,w/scale,1.5)
+  for(let x=left+8;x<-110;x+=24){
+    c.fillStyle='#ecb080';c.fillRect(x,-9,1,6)
+    halo(c,x,-9,5,'#ffd39982')
+  }
   c.restore()
+  return scale
 }
 
 function resize(){
@@ -127,7 +152,7 @@ function resize(){
     c.fillRect(rand()*w,rand()*h*.8,1,1)
   }
   halo(c,w*.57,horizon,Math.min(w*.73,h*.76),'#f89c7546')
-  drawShanghai(c,w,h,horizon,rand)
+  const cityScale=drawShanghai(c,w,h,horizon,rand)
   const water=c.createLinearGradient(0,horizon,0,h)
   water.addColorStop(0,'#402535');water.addColorStop(1,'#140f1f')
   c.fillStyle=water;c.fillRect(0,horizon,w,h-horizon)
@@ -136,8 +161,8 @@ function resize(){
     c.fillStyle='rgba(237,151,99,'+(rand()*.17*(1-y*.65))+')'
     c.fillRect(x,horizon+y*(h-horizon),len,.8)
   }
-  for(const [position,color] of [[.39,'#f489aa'],[.55,'#ffd19a'],[.68,'#d9a3e7']]){
-    const center=w*position
+  for(const [building,color] of [[-317,'#fcb479'],[-218,'#ffd19a'],[-98,'#f489aa'],[98,'#ffbb8e'],[163,'#bca5ef'],[254,'#e5b1d7']]){
+    const center=w*.5+building*cityScale
     for(let i=0;i<29;i++){
       const distance=rand(), width=(3+distance*24)*rand()
       c.globalAlpha=(1-distance)*.35
@@ -259,11 +284,28 @@ function drawShell(shell){
   }
   ctx.globalAlpha=1
 }
+function drawRiverBoat(){
+  const size=Math.min(w/780,h/560,1.25)
+  const x=(((time*.016+.28)%1)*1.16-.08)*w, y=h*.918
+  ctx.save()
+  ctx.translate(x,y);ctx.scale(size,size)
+  const wake=ctx.createLinearGradient(-100,0,0,0)
+  wake.addColorStop(0,'transparent');wake.addColorStop(1,'#e9a77c90')
+  ctx.strokeStyle=wake;ctx.lineWidth=.85
+  ctx.beginPath();ctx.moveTo(-97,4);ctx.quadraticCurveTo(-54,7,9,2);ctx.stroke()
+  silhouette(ctx,[[-30,-3],[29,-3],[22,3],[-25,3]],'#261b2f','#f1bb89')
+  silhouette(ctx,[[-22,-3],[-19,-11],[12,-11],[21,-3]],'#4b3246','#be8b7d')
+  ctx.fillStyle='#ffdb9d'
+  for(let x=-16;x<=12;x+=5)ctx.fillRect(x,-9,3,3)
+  halo(ctx,23,-5,5,'#ffd0a274')
+  ctx.restore()
+}
 function paint(){
   ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over'
   ctx.drawImage(base,0,0);ctx.scale(ratio,ratio);ctx.globalCompositeOperation='lighter'
   for(const shell of shells){ctx.globalAlpha=1;drawShell(shell)}
   ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over'
+  drawRiverBoat()
 }
 function tick(now){
   frame=0

@@ -1,4 +1,4 @@
-import {burst} from './scene.js?v=shanghai'
+import {burst} from './scene.js?v=river-lights'
 const $ = id => document.getElementById(id)
 const endpoint='https://spring-festival-wishes-zhou.pages.dev/wishes'
 const prefix='【新春祝福】'
@@ -7,7 +7,7 @@ const greetings=['新春快乐！','愿你所遇皆暖','岁岁常欢愉']
 function showBubble(immediate){
   if(document.hidden)return
   const pool=messages.length?messages:greetings
-  const chip=document.createElement('span');chip.className='bubble';const item=immediate??pool[cursor%pool.length];chip.textContent=typeof item==='string'?item:'匿名 · '+item.message
+  const chip=document.createElement('span');chip.className='bubble';const item=immediate??pool[cursor%pool.length];chip.textContent=typeof item==='string'?item:item.message
   chip.style.top=(cursor%3)*7+3+'%';cursor++;$('stream').append(chip)
   chip.addEventListener('animationend',()=>chip.remove(),{once:true})
 }
