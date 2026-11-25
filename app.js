@@ -1,4 +1,4 @@
-import {burst} from './scene.js'
+import {burst} from './scene.js?v=sky-show'
 const $ = id => document.getElementById(id)
 const endpoint='https://spring-festival-wishes.stephencurryzhou30-festival.workers.dev/wishes'
 const prefix='【新春祝福】'
@@ -24,37 +24,51 @@ async function readJson(url){
   if(!response.ok)throw Error('读取失败')
   return response.json()
 }
-let archive=[], live=[], revision=0
+let archive=[], live=[], revision=0, archiveChecked=0
 async function readLive(){
-  let url=endpoint
-  const rows=[]
-  while(url){
-    const page=await readJson(url)
+  const first=await readJson(endpoint)
+  const boundary=live.findIndex(wish=>wish.id===first.next)
+  if(first.next&&boundary>=0)return [...first.items,...live.slice(boundary+1)]
+  const rows=first.items.slice()
+  let before=first.next
+  while(before){
+    const page=await readJson(endpoint+'?before='+before)
     rows.push(...page.items)
-    url=page.next?endpoint+'?before='+page.next:null
+    before=page.next
   }
   return rows
+}
+async function readArchive(){
+  if(Date.now()-archiveChecked<60000)return archive
+  const rows=await readJson('./wishes.json')
+  archiveChecked=Date.now()
+  return rows.map(wish=>({id:'github-'+wish.id,message:wish.title.slice(prefix.length)}))
 }
 function combine(){messages=[...live,...archive];render()}
 async function load(){
   if(busy)return
-  busy=true;$('refresh').disabled=true
+  busy=true
   const started=revision
   try{
-    const [current,old]=await Promise.allSettled([readLive(),readJson('./wishes.json')])
+    const [current,old]=await Promise.allSettled([readLive(),readArchive()])
     const previous=live[0]?.id
     if(current.status==='fulfilled'&&started===revision)live=current.value
-    if(old.status==='fulfilled')archive=old.value.map(m=>({id:'github-'+m.id,message:m.title.slice(prefix.length)}))
-    combine()
-    if(current.status==='rejected'||old.status==='rejected')$('status').textContent='部分祝福暂时无法读取，请稍后刷新。'
+    if(old.status==='fulfilled')archive=old.value
+    const next=[...live,...archive]
+    if(next.length!==messages.length||next.some((wish,index)=>wish.id!==messages[index].id||wish.message!==messages[index].message)){
+      messages=next
+      render()
+    }
+    if(current.status==='rejected'||old.status==='rejected')$('status').textContent='留言暂时无法同步，正在自动重试。'
+    else if($('status').textContent.startsWith('留言暂时')||$('status').textContent.startsWith('正在'))render()
     if(live[0]&&live[0].id!==previous)showBubble(live[0])
-  }finally{busy=false;$('refresh').disabled=false}
+  }finally{busy=false}
 }
 $('burst').onclick=()=>burst()
 $('sky').onclick=e=>{if(e.target!==$('sky'))return;const box=e.currentTarget.getBoundingClientRect();burst(e.clientX-box.left,e.clientY-box.top)}
-$('refresh').onclick=()=>load();$('more').onclick=()=>{visibleCount+=24;render()}
+$('more').onclick=()=>{visibleCount+=24;render()}
 $('write').onclick=()=>{$('composer').showModal();$('wish').focus()}
-let sending=false, requestId=crypto.randomUUID()
+let sending=false, deliveryTimer, requestId=crypto.randomUUID()
 function updateComposer(){
   $('send').disabled=sending||!$('wish').value.trim()
 }
@@ -76,7 +90,9 @@ $('send').onclick=async()=>{
     combine();showBubble(data)
     $('wish').value='';requestId=crypto.randomUUID()
     $('composer').close()
-    $('status').textContent='你的祝福已送达，所有人都能看到。'
+    $('delivery').textContent='祝福已送达'
+    clearTimeout(deliveryTimer)
+    deliveryTimer=setTimeout(()=>$('delivery').textContent='',3500)
     $('feedback').textContent=''
   }catch{$('feedback').textContent='暂时无法确认是否送达，请重试。'}
   finally{sending=false;$('wish').readOnly=false;updateComposer()}
@@ -84,7 +100,5 @@ $('send').onclick=async()=>{
 updateComposer();showBubble();load()
 setInterval(showBubble,6000)
 
-setInterval(()=>{if(!document.hidden)load()},20000)
+setInterval(()=>{if(!document.hidden)load()},3000)
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()})
-
-

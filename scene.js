@@ -2,7 +2,7 @@ const canvas = document.querySelector('canvas')
 const ctx = canvas.getContext('2d')
 const base = document.createElement('canvas')
 let w, h, ratio, frame = 0, time = 0, last = 0
-let shells = [], serial = 0, nextLaunch = 0
+let shells = [], serial = 0, patternIndex = 0, nextLaunch = 0
 const tau = 2 * Math.PI
 const palettes = [
   ['#ffe6aa','#ffb95e','#ee7840'], ['#ffe4e1','#ff899b','#c84e83'],
@@ -40,7 +40,7 @@ function resize(){
   const c=base.getContext('2d');c.scale(ratio,ratio)
   const rand=random(2718), horizon=h*.86
   const sky=c.createLinearGradient(0,0,0,h)
-  sky.addColorStop(0,'#100f22');sky.addColorStop(.53,'#25192e');sky.addColorStop(.86,'#743b48');sky.addColorStop(1,'#1c1526')
+  sky.addColorStop(0,'#090b1a');sky.addColorStop(.53,'#151326');sky.addColorStop(.86,'#533544');sky.addColorStop(1,'#161120')
   c.fillStyle=sky;c.fillRect(0,0,w,h)
   for(let i=0;i<200;i++){
     c.fillStyle='rgba(255,227,195,'+(rand()*.55)+')'
@@ -69,8 +69,8 @@ function resize(){
     c.fillRect(x,horizon+y*(h-horizon),len,.8)
   }
   shells=[]
-  addShell(w*.72,h*(w<650?.21:.34),1.75,0)
-  addShell(w*.92,h*.43,2.42,1)
+  addShell(w*.61,h*.31,1.42,0)
+  addShell(w*.26,h*.52,1.68,2,.68)
   nextLaunch=time+1.2;paint()
 }
 const patterns=['peony','ring','willow','fan','heart','spiral','palm']
@@ -107,16 +107,16 @@ function direction(pattern,i,count,rotation,rand){
     }
   }
 }
-function addShell(x,y,age=0,style=serial%patterns.length){
+function addShell(x,y,age=0,style=patternIndex++%patterns.length,size=1){
   const rand=random(++serial*8353), pattern=patterns[style]
   const palette=palettes[style%palettes.length]
-  const radius=Math.min(w*(w<650?.29:.165),h*.3)*(pattern==='ring'?.85:1)
+  const radius=Math.min(w*(w<650?.38:.205),h*.29)*size*(pattern==='ring'?.85:1)
   const stars=[], count=w<650?145:232
   const rotation=rand()*tau
   for(let i=0;i<count;i++){
     const [dx,dy,dz]=direction(pattern,i,count,rotation,rand)
-    stars.push({x:dx,y:dy,z:dz,life:1.4+rand()*1.1+(pattern==='willow'?.9:0),
-      phase:rand()*tau,color:palette[Math.floor(rand()*palette.length)]})
+    stars.push({x:dx,y:dy,z:dz,life:1.5+rand()*1.0+(pattern==='willow'?.9:0),
+      phase:rand()*tau,sparkle:rand()>.7,color:palette[Math.floor(rand()*palette.length)]})
   }
   shells.push({x,y,stars,radius,pattern,born:time-age,flight:.85,launchX:x-radius*.26,
     launchY:h*.85,glow:palette[1]})
@@ -128,27 +128,43 @@ function drawShell(shell){
     const travel=t=>1-(1-t)**1.8
     const t=Math.max(0,age/flight), f=travel(t), tail=travel(Math.max(0,t-.09))
     const px=shell.launchX+(x-shell.launchX)*f,py=shell.launchY+(y-shell.launchY)*f
-    ctx.strokeStyle='#ffb663';ctx.lineWidth=1.3;ctx.beginPath()
-    ctx.moveTo(shell.launchX+(x-shell.launchX)*tail,shell.launchY+(y-shell.launchY)*tail)
+    const tailX=shell.launchX+(x-shell.launchX)*tail,tailY=shell.launchY+(y-shell.launchY)*tail
+    const exhaust=ctx.createLinearGradient(tailX,tailY,px+.01,py)
+    exhaust.addColorStop(0,'transparent');exhaust.addColorStop(.72,'#e68b428c');exhaust.addColorStop(1,'#fff0bb')
+    ctx.strokeStyle=exhaust;ctx.lineWidth=2;ctx.beginPath()
+    ctx.moveTo(tailX,tailY)
     ctx.lineTo(px,py);ctx.stroke();halo(ctx,px,py,7,'#ffdc92');return
   }
   const t=age-flight, glow=Math.exp(-2.7*t)
-  ctx.globalAlpha=.31*glow;halo(ctx,x,y,radius*1.45,shell.glow)
-  ctx.globalAlpha=glow;halo(ctx,x,y,Math.max(2,17*glow),'#fff1b4')
+  ctx.globalAlpha=.3*glow;halo(ctx,x,y,radius*1.22,shell.glow)
+  ctx.globalAlpha=.08*Math.exp(-.8*t)
+  halo(ctx,x+radius*.21*t,y+radius*.08*t,radius*(.55+.28*t),shell.glow)
+  ctx.globalAlpha=glow;halo(ctx,x,y,Math.max(3,23*glow),'#fff4d0')
   const travel=u=>1-Math.exp(-1.9*u)
   const distance=travel(t), droop=pattern==='willow'?.21:pattern==='palm'?.17:.085
   for(const star of shell.stars){
     if(t>=star.life)continue
     const depth=1/(1-.22*star.z*distance)
     const px=x+star.x*radius*distance*depth,py=y+(star.y*distance+droop*t*t)*radius*depth
-    const back=Math.max(0,t-(pattern==='willow'?.38:.13)*(1+.35*t)),d=travel(back),bd=1/(1-.22*star.z*d)
-    const tx=x+star.x*radius*d*bd,ty=y+(star.y*d+droop*back*back)*radius*bd
-    const fade=Math.min(1,(star.life-t)*1.7),shine=.7+.3*Math.sin(t*13+star.phase)
-    ctx.strokeStyle=star.color;ctx.lineWidth=(.8+.52*(star.z+1))*fade+.2
-    ctx.globalAlpha=fade*(.43+.19*(star.z+1))*shine
-    ctx.beginPath();ctx.moveTo(tx,ty);ctx.quadraticCurveTo((tx+px)*.5,(ty+py)*.5-.7,px,py);ctx.stroke()
-    ctx.globalAlpha=fade*shine;ctx.fillStyle=star.z>.1?'#fff3c9':star.color
-    ctx.fillRect(px-.65,py-.65,depth*1.5,depth*1.5)
+    const trailLength=(pattern==='willow'?.42:pattern==='palm'?.25:.19)*(1+.26*t)
+    const fade=Math.min(1,(star.life-t)*1.35)*Math.exp(-.26*t)
+    const shimmer=star.sparkle?.63+.37*Math.sin(t*27+star.phase):.9
+    let endX=px,endY=py
+    for(let segment=1;segment<=3;segment++){
+      const earlier=Math.max(0,t-trailLength*segment/3),d=travel(earlier),perspective=1/(1-.22*star.z*d)
+      const tailX=x+star.x*radius*d*perspective,tailY=y+(star.y*d+droop*earlier*earlier)*radius*perspective
+      ctx.strokeStyle=segment===1?star.color:shell.glow
+      ctx.globalAlpha=fade*shimmer*(.71+.22*star.z)/segment
+      ctx.lineWidth=(1.48-.34*segment)*depth+.22
+      ctx.beginPath();ctx.moveTo(endX,endY);ctx.lineTo(tailX,tailY);ctx.stroke()
+      endX=tailX;endY=tailY
+    }
+    ctx.globalAlpha=fade*shimmer;ctx.fillStyle=star.z>.05?'#fff4d0':star.color
+    ctx.fillRect(px-.65,py-.65,depth*1.55,depth*1.55)
+    if(star.sparkle&&t>.37){
+      ctx.globalAlpha=fade*.34*shimmer
+      ctx.fillRect(endX,endY,1,1)
+    }
   }
   // Broken bands on the water follow the color and decay of each bloom.
   for(let i=0;i<18;i++){
@@ -169,10 +185,15 @@ function paint(){
 function tick(now){
   frame=0
   if(document.hidden)return
-  if(now-last>=30){
+  if(now-last>=1000/60-1){
     time+=Math.min(.08,(now-last)/1000);last=now
     shells=shells.filter(s=>time-s.born<4.4)
-    if(time>=nextLaunch){burst();nextLaunch=time+1.5+Math.random()*.8}
+    if(time>=nextLaunch){
+      const lane=patternIndex%3
+      addShell(w*(.24+.26*lane+(Math.random()-.5)*.09),h*(.26+Math.random()*.25))
+      if(lane===0)addShell(w*.77,h*.48,0,0,.57)
+      nextLaunch=time+1.34+Math.random()*.55
+    }
     paint()
   }
   frame=requestAnimationFrame(tick)
@@ -180,7 +201,7 @@ function tick(now){
 function resume(){
   if(!frame&&!document.hidden){last=performance.now();frame=requestAnimationFrame(tick)}
 }
-export function burst(x=w*(.53+Math.random()*.37),y=h*(w<650?.13+Math.random()*.21:.18+Math.random()*.29)){
+export function burst(x=w*(.23+Math.random()*.54),y=h*(.24+Math.random()*.32)){
   addShell(x,y)
   paint()
 }

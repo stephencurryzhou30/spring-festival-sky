@@ -4,19 +4,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#2b0917">
 <title>羊年快乐</title>
-<link rel="stylesheet" href="./sky.css">
-<header><a class="brand" href="#sky"><i>✺</i> 羊年快乐</a><span>新春弹幕夜</span><a class="wallLink" href="#wall">祝福墙</a></header>
+<link rel="stylesheet" href="./sky.css?v=sky-show">
 <main>
 <section id="sky" aria-label="新春烟花夜空">
 <canvas aria-hidden="true"></canvas><div id="stream" aria-hidden="true"></div>
-<div class="intro"><p class="kicker">✦ &nbsp; 新 春 共 赏</p><h1>今夜，<br><em>花火正好。</em></h1><p>把想说的话，送上同一片夜空。</p>
-<div class="actions"><button id="write">✎ &nbsp; 写下祝福</button><button id="burst" class="outline">✺ &nbsp; 放烟花</button></div></div>
+<div class="sky-controls">
+<h1>羊年快乐</h1>
+<div class="actions"><button id="write">写下祝福</button><button id="burst" class="outline">放烟花</button><a class="outline" href="#wall">祝福墙</a></div>
+</div>
+<p id="delivery" role="status"></p>
 </section>
-<section id="wall"><div class="wallHead"><h2><span>✳</span> 祝福墙</h2><button class="quiet" id="refresh">↻ &nbsp; 刷新留言</button></div>
+<section id="wall"><div class="wallHead"><h2><span>✳</span> 祝福墙</h2></div>
 <p id="status" role="status">正在收取祝福…</p><div id="cards"></div><button id="more" hidden>查看更多</button></section>
 </main>
 <dialog id="composer" aria-labelledby="wish-label"><form method="dialog"><button class="close" aria-label="关闭">×</button></form>
 <label for="wish" id="wish-label">匿名留言</label>
 <textarea id="wish" maxlength="80" rows="2" placeholder="写一句新年祝福…" autofocus></textarea>
 <p id="feedback" role="status"></p><button class="primary" id="send" type="button">发送</button></dialog>
-<script type="module" src="./app.js"></script></html>
+<script type="module" src="./app.js?v=sky-show"></script></html>
