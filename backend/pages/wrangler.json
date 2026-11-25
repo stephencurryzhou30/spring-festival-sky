@@ -1,0 +1,6 @@
+{
+  "name":"spring-festival-wishes-zhou",
+  "pages_build_output_dir":"./public",
+  "compatibility_date":"2026-11-01",
+  "services":[{"binding":"WISHES","service":"spring-festival-wishes"}]
+}

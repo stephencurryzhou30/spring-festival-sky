@@ -1,6 +1,6 @@
 import {burst} from './scene.js?v=shanghai'
 const $ = id => document.getElementById(id)
-const endpoint='https://spring-festival-wishes.stephencurryzhou30-festival.workers.dev/wishes'
+const endpoint='https://spring-festival-wishes-zhou.pages.dev/wishes'
 const prefix='【新春祝福】'
 let messages=[], visibleCount=24, busy=false, cursor=0
 const greetings=['新春快乐！','愿你所遇皆暖','岁岁常欢愉']
