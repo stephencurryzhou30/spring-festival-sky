@@ -1,4 +1,4 @@
-import {burst} from './scene.js?v=yantai-bay'
+import {burst} from './scene.js?v=yantai-waterfront'
 const $ = id => document.getElementById(id)
 const endpoint='https://spring-festival-wishes-zhou.pages.dev/wishes'
 const prefix='【新春祝福】'

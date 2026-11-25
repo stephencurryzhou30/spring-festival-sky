@@ -26,7 +26,7 @@ jobs:
         with:
           ref: main
           persist-credentials: false
-      - run: mkdir public && cp index.html sky.css app.js scene.js public/
+      - run: mkdir public && cp index.html sky.css app.js scene.js yantai-night.webp public/
       - uses: actions/github-script@v7
         with:
           script: |
