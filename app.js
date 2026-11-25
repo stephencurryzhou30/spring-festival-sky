@@ -1,4 +1,4 @@
-import {burst} from './scene.js?v=golden-blooms'
+import {burst} from './scene.js?v=layered-blooms'
 const $ = id => document.getElementById(id)
 const endpoint='https://spring-festival-wishes.stephencurryzhou30-festival.workers.dev/wishes'
 const prefix='【新春祝福】'

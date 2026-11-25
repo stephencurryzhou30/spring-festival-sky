@@ -4,8 +4,16 @@ const base = document.createElement('canvas')
 let w, h, ratio, frame = 0, time = 0, last = 0
 let shells = [], serial = 0, patternIndex = 0, nextLaunch = 0
 const tau = 2 * Math.PI
-const colors = ['#ffce80','#ff8f9e','#f5ae64','#f1a098','#ffe4a7','#f6a3bd','#e9b2ec']
-const blooms = colors.map((color,index)=>makeBloom(color,index))
+const styles = [
+  {color:'#ffce80',core:'#fff2bc',shape:'peony',hang:.075},
+  {color:'#ff8f9e',core:'#ffe2ab',shape:'chrysanthemum',hang:.11},
+  {color:'#ffba62',core:'#fff1c4',shape:'willow',hang:.34},
+  {color:'#f6a8d2',core:'#ffd59b',shape:'double',hang:.08},
+  {color:'#ff9d6b',core:'#fff1be',shape:'palm',hang:.24},
+  {color:'#ddd1ff',core:'#fff2c6',shape:'strobe',hang:.095},
+  {color:'#ffe3a0',core:'#fff8db',shape:'brocade',hang:.2}
+]
+const blooms=styles.map(makeBloom)
 function random(seed) {
   let state=seed
   return () => ((state=(Math.imul(1664525,state)+1013904223)>>>0)/4294967296)
@@ -72,34 +80,56 @@ function resize(){
   addShell(w*.41,h*.20,2.03,3,.46)
   nextLaunch=time+1.2;paint()
 }
-// Pre-render the fine, broken streaks of the original blooms at full resolution.
-function makeBloom(color, index){
-  const sprite=document.createElement('canvas')
-  sprite.width=sprite.height=520
-  const brush=sprite.getContext('2d'), rand=random(23+index*8)
-  brush.translate(260,245)
-  brush.lineCap='round'
-  const rays=[]
-  for(let i=0;i<112;i++){
-    const angle=i*tau/112+rand()*.045
-    const length=212*(.53+rand()*.47)
-    const dx=Math.cos(angle)*length,dy=Math.sin(angle)*length
-    const tint=i%5===0?'#fff3c3':color
-    rays.push({dx,dy,tint,phase:rand()*tau})
+// Cache the distant and near halves of each textured bloom for mobile playback.
+function makeBloom(style,index){
+  const {color,core,shape,hang}=style
+  const rand=random(23+index*8)
+  const layers=Array.from({length:2},()=>{
+    const sprite=document.createElement('canvas')
+    sprite.width=sprite.height=560
+    const brush=sprite.getContext('2d')
+    brush.translate(280,242)
+    brush.lineCap='round'
+    return {sprite,brush}
+  })
+  const rays=[], count=shape==='brocade'?184:144
+  for(let i=0;i<count;i++){
+    const angle=i*tau/count+rand()*.045
+    const near=i%2===0
+    const z=(near?1:-1)*rand()
+    const inner=shape==='double'&&i%3===0
+    const palmAngle=Math.round(angle/(tau/9))*(tau/9)+(rand()-.5)*.145
+    const azimuth=shape==='palm'?palmAngle:angle
+    let reach=.56+rand()*.44
+    if(shape==='chrysanthemum')reach=.83+rand()*.17
+    if(shape==='palm')reach=.64+rand()*.36
+    if(shape==='double')reach=inner?.39+rand()*.16:.79+rand()*.21
+    if(shape==='willow')reach=.63+rand()*.36
+
+    const span=212*reach*Math.sqrt(1-.48*z*z)
+    const dx=Math.cos(azimuth)*span
+    const dy=Math.sin(azimuth)*span*(shape==='willow'?.8:1)
+    const bend=span*hang
+    const tint=inner||i%5===0?core:color
+    const phase=rand()*tau
+    const brush=layers[near?1:0].brush
+    rays.push({dx,dy,bend,z,tint,phase})
     brush.strokeStyle=tint
-    for(let j=0;j<13;j++){
-      const t=.13+j*.066,end=t+.038*rand()
-      brush.globalAlpha=(.26+.72*t)*(.58+rand()*.42)
-      brush.lineWidth=.65+rand()*1.18
+    const segments=shape==='willow'?18:13
+    for(let j=0;j<segments;j++){
+      const t=.12+j*.83/segments
+      const end=t+(shape==='strobe'?.016:.035)*(.55+rand()*.62)
+      brush.globalAlpha=(.24+.75*t)*(.52+rand()*.43)*(near?1:.58)
+      brush.lineWidth=(.72+rand()*.88)*(near?1.21:.72)
       brush.beginPath()
-      brush.moveTo(dx*t,dy*t+length*.13*t*t)
-      brush.lineTo(dx*end,dy*end+length*.13*end*end)
+      brush.moveTo(dx*t,dy*t+bend*t*t)
+      brush.lineTo(dx*end,dy*end+bend*end*end)
       brush.stroke()
     }
   }
-  return {sprite,rays,color}
+  return {layers:layers.map(layer=>layer.sprite),rays,color,shape,hang}
 }
-function addShell(x,y,age=0,style=patternIndex++%colors.length,size=1){
+function addShell(x,y,age=0,style=patternIndex++%styles.length,size=1){
   const radius=Math.min(w*(w<650?.40:.21),h*.33)*size
   const flight=.72+(serial++%3)*.09
   shells.push({x,y,radius,bloom:blooms[style],born:time-age,flight,
@@ -124,18 +154,28 @@ function drawShell(shell){
   const fade=Math.min(1,t*9)*Math.max(0,1-Math.max(0,t-.9)/2.25)**1.3
   if(fade<=0)return
   const scale=radius*expansion/212
-  const fall=radius*.035*t*t
+  const fall=radius*(.023+bloom.hang*.18)*t*t
   ctx.globalAlpha=.28*Math.exp(-2.6*t)
   halo(ctx,x,y,radius*1.07,bloom.color)
-  ctx.globalAlpha=fade
-  ctx.drawImage(bloom.sprite,x-260*scale,y+fall-245*scale,520*scale,520*scale)
+  ctx.globalAlpha=.75*Math.exp(-11*t)
+  halo(ctx,x,y,4+radius*.1,'#fff1c5')
+
+  // Perspective separates foreground and background as the shell expands.
+  for(let layer=0;layer<bloom.layers.length;layer++){
+    const parallax=1+(layer===0?-.15:.13)*expansion
+    const projected=scale*parallax
+    ctx.globalAlpha=fade*(layer===0?.79:1)
+    ctx.drawImage(bloom.layers[layer],x-280*projected,y+fall-242*projected,560*projected,560*projected)
+  }
   for(const ray of bloom.rays){
-    const pulse=Math.max(0,Math.sin(t*12+ray.phase))
-    if(pulse<.45)continue
-    const reach=.86+.08*pulse
-    ctx.globalAlpha=fade*pulse*.84
+    const pulse=Math.max(0,Math.sin(t*(bloom.shape==='strobe'?22:12)+ray.phase))
+    if(pulse<.46)continue
+    const reach=.88+.08*pulse
+    const projected=scale*(1+ray.z*.16*expansion)
+    const size=1.08+.55*ray.z
+    ctx.globalAlpha=fade*pulse*(.66+.24*ray.z)
     ctx.fillStyle=ray.tint
-    ctx.fillRect(x+ray.dx*scale*reach,y+fall+ray.dy*scale*reach,1.35,1.35)
+    ctx.fillRect(x+ray.dx*projected*reach,y+fall+(ray.dy*reach+ray.bend*reach*reach)*projected,size,size)
   }
   // Broken bands on the water follow the color and decay of each bloom.
   for(let i=0;i<18;i++){
