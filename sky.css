@@ -6,6 +6,7 @@ a{color:inherit;text-decoration:none}
 button,.actions a{border:1px solid transparent;cursor:pointer;border-radius:30px;background:#ffd591;color:#371b22;padding:10px 17px;font-weight:650;min-height:44px}
 button:focus-visible,a:focus-visible,textarea:focus-visible{outline:2px solid #fff;outline-offset:3px}
 #sky{isolation:isolate;overflow:hidden;position:relative;height:100vh;height:100svh;background:#111020}
+#sky,#burst{touch-action:manipulation}
 canvas,#stream{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .sky-controls{position:absolute;inset:auto 0 0;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px max(4vw,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(4vw,env(safe-area-inset-left));background:linear-gradient(transparent,#120c18e8);pointer-events:none}
 h1{margin:0;font:650 clamp(17px,3vw,28px)/1.3 "KaiTi","Songti SC",serif;color:#ffe1a8;letter-spacing:.08em}
